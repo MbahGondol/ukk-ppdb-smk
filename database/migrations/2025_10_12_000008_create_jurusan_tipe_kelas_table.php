@@ -13,6 +13,8 @@ return new class extends Migration {
             $table->unsignedInteger('kuota_kelas');
             
             $table->unique(['jurusan_id', 'tipe_kelas_id'], 'uk_jurusan_tipe_kelas');
+
+            $table->timestamps();
         });
     }
 

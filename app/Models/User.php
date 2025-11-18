@@ -7,13 +7,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 // use Laravel\Sanctum\HasApiTokens; // Dihapus karena menyebabkan error
-use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
-    use HasRoles; // Tambahan untuk Spatie Roles & Permissions
+
+    /**
+    * @property string $role
+    */
     
     use HasFactory, Notifiable;
     // use HasApiTokens, HasFactory, Notifiable; // HasApiTokens dihapus
@@ -54,9 +56,8 @@ class User extends Authenticatable
      * Relasi 1:1 ke CalonSiswa.
      * FK: id_users pada tabel calon_siswa
      */
-    public function calonSiswa(): HasOne
-    {
-        return $this->hasOne(CalonSiswa::class, 'id_users');
+    public function calonSiswa(): HasOne {
+        return $this->hasOne(CalonSiswa::class, 'user_id'); 
     }
 
     /**

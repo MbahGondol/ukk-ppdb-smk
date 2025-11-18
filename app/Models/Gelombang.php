@@ -23,13 +23,6 @@ class Gelombang extends Model
         return $this->belongsTo(Promo::class, 'promo_id');
     }
 
-    /**
-     * Relasi 1:N ke KuotaGelombang
-     */
-    public function kuotaGelombang(): HasMany
-    {
-        return $this->hasMany(KuotaGelombang::class, 'id_gelombang');
-    }
 
     /**
      * Relasi 1:N ke CalonSiswa

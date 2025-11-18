@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void {
-        Schema::create('pembayaran', function (Blueprint $table) {
+        Schema::create('pembayaran_siswa', function (Blueprint $table) {
             $table->id();
             $table->foreignId('rencana_pembayaran_id')->constrained('rencana_pembayaran')->onDelete('cascade')->onUpdate('cascade');
             $table->decimal('jumlah', 15, 2);
@@ -19,6 +19,6 @@ return new class extends Migration {
     }
 
     public function down(): void {
-        Schema::dropIfExists('pembayaran');
+        Schema::dropIfExists('pembayaran_siswa');
     }
 };

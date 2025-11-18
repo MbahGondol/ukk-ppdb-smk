@@ -13,14 +13,16 @@ class RencanaPembayaran extends Model
 
     protected $table = 'rencana_pembayaran';
     protected $guarded = ['id'];
-    protected $dates = ['tanggal_jatuh_tempo'];
+    protected $casts = [
+        'tanggal_jatuh_tempo' => 'date',
+    ];
 
     /**
      * Relasi N:1 ke CalonSiswa
      */
     public function calonSiswa(): BelongsTo
     {
-        return $this->belongsTo(CalonSiswa::class, 'id_siswa');
+        return $this->belongsTo(CalonSiswa::class, 'calon_siswa_id');
     }
 
     /**
@@ -28,7 +30,7 @@ class RencanaPembayaran extends Model
      */
     public function detailBiaya(): BelongsTo
     {
-        return $this->belongsTo(BiayaPerJurusanTipeKelas::class, 'id_biaya');
+        return $this->belongsTo(BiayaPerJurusanTipeKelas::class, 'biaya_per_jurusan_tipe_kelas_id');
     }
 
     /**
@@ -36,6 +38,6 @@ class RencanaPembayaran extends Model
      */
     public function pembayaran(): HasMany
     {
-        return $this->hasMany(PembayaranSiswa::class, 'id_rencana_pembayaran');
+        return $this->hasMany(PembayaranSiswa::class, 'rencana_pembayaran_id');
     }
 }

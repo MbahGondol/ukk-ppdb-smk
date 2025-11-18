@@ -39,12 +39,15 @@ return new class extends Migration {
 
             $table->enum('status_pendaftaran', [
                 'Draft',
+                'Melengkapi Berkas',
                 'Terdaftar',
                 'Proses Verifikasi',
                 'Ditolak',
                 'Lunas',
                 'Resmi Diterima'
             ])->default('Draft')->index();
+
+            $table->text('catatan_admin')->nullable()->comment('Catatan dari admin, misal alasan penolakan');
 
             $table->dateTime('tanggal_submit')->nullable();
 

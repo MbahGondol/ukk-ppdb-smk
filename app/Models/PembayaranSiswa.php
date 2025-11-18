@@ -13,14 +13,17 @@ class PembayaranSiswa extends Model
 
     protected $table = 'pembayaran_siswa';
     protected $guarded = ['id'];
-    protected $dates = ['tanggal_bayar'];
+
+    protected $casts = [
+        'tanggal_pembayaran' => 'datetime',
+    ];
 
     /**
      * Relasi N:1 ke RencanaPembayaran
      */
     public function rencanaPembayaran(): BelongsTo
     {
-        return $this->belongsTo(RencanaPembayaran::class, 'id_rencana_pembayaran');
+        return $this->belongsTo(RencanaPembayaran::class, 'rencana_pembayaran_id');
     }
 
     /**
@@ -28,6 +31,6 @@ class PembayaranSiswa extends Model
      */
     public function buktiPembayaran(): HasOne
     {
-        return $this->hasOne(BuktiPembayaran::class, 'id_pembayaran');
+        return $this->hasOne(BuktiPembayaran::class, 'pembayaran_id');
     }
 }

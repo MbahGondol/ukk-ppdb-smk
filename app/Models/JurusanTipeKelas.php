@@ -30,13 +30,6 @@ class JurusanTipeKelas extends Model
         return $this->belongsTo(TipeKelas::class, 'tipe_kelas_id');
     }
 
-    /**
-     * Relasi 1:N ke KuotaGelombang
-     */
-    public function kuotaGelombang(): HasMany
-    {
-        return $this->hasMany(KuotaGelombang::class, 'jurusan_tipe_kelas_id');
-    }
 
     /**
      * Relasi 1:N ke BiayaPerJurusanTipeKelas

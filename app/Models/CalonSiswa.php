@@ -14,14 +14,22 @@ class CalonSiswa extends Model
 
     protected $table = 'calon_siswa';
     protected $guarded = ['id'];
-    protected $dates = ['tanggal_lahir', 'tanggal_pendaftaran_disubmit'];
+    /**
+     * Atribut yang harus di-cast ke tipe bawaan.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'tanggal_lahir' => 'date',
+        'tanggal_submit' => 'datetime',
+    ];
 
     /**
      * Relasi N:1 ke User (Pemilik Akun)
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'id_users');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
@@ -69,7 +77,7 @@ class CalonSiswa extends Model
      */
     public function penanggungJawab(): HasMany
     {
-        return $this->hasMany(PenanggungJawab::class, 'id_siswa');
+        return $this->hasMany(PenanggungJawab::class, 'calon_siswa_id');
     }
 
     /**
@@ -77,14 +85,14 @@ class CalonSiswa extends Model
      */
     public function dokumen(): HasMany
     {
-        return $this->hasMany(DokumenSiswa::class, 'id_siswa');
+        return $this->hasMany(DokumenSiswa::class, 'calon_siswa_id');
     }
 
     /**
      * Relasi 1:N ke Rencana Pembayaran
      */
-    public function rencanaPembayaran(): HasMany
+    public function rencanaPembayaran(): HasOne
     {
-        return $this->hasMany(RencanaPembayaran::class, 'id_siswa');
+        return $this->hasOne(RencanaPembayaran::class, 'calon_siswa_id');
     }
 }

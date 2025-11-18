@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('bukti_pembayaran', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('pembayaran_id')->unique()->constrained('pembayaran')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('pembayaran_id')->unique()->constrained('pembayaran_siswa')->onDelete('cascade')->onUpdate('cascade');
             $table->string('file_path', 255)->comment('Path file bukti transfer');
             $table->timestamps();
         });

@@ -9,7 +9,7 @@ return new class extends Migration {
         Schema::create('rencana_pembayaran', function (Blueprint $table) {
             $table->id();
             $table->foreignId('calon_siswa_id')->constrained('calon_siswa')->cascadeOnUpdate()->restrictOnDelete();
-            $table->foreignId('biaya_per_jurusan_tipe_kelas_id')->constrained('biaya_per_jurusan_tipe_kelas')->cascadeOnUpdate()->restrictOnDelete();
+            $table->foreignId('biaya_per_jurusan_tipe_kelas_id')->nullable()->constrained('biaya_per_jurusan_tipe_kelas')->cascadeOnUpdate()->restrictOnDelete();
             $table->enum('jenis_pembayaran', ['Full', 'Cicilan']);
             $table->decimal('total_nominal_biaya', 15, 2);
             $table->decimal('total_sudah_dibayar', 15, 2)->default(0.00);

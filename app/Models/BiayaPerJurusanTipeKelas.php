@@ -19,7 +19,7 @@ class BiayaPerJurusanTipeKelas extends Model
      */
     public function jenisBiaya(): BelongsTo
     {
-        return $this->belongsTo(JenisBiaya::class, 'id_jenis_biaya');
+        return $this->belongsTo(JenisBiaya::class, 'jenis_biaya_id');
     }
 
     /**
@@ -27,7 +27,7 @@ class BiayaPerJurusanTipeKelas extends Model
      */
     public function jurusanTipeKelas(): BelongsTo
     {
-        return $this->belongsTo(JurusanTipeKelas::class, 'id_jurusan_tipe_kelas');
+        return $this->belongsTo(JurusanTipeKelas::class, 'jurusan_tipe_kelas_id');
     }
 
     /**

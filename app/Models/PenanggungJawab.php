@@ -18,6 +18,6 @@ class PenanggungJawab extends Model
      */
     public function calonSiswa(): BelongsTo
     {
-        return $this->belongsTo(CalonSiswa::class, 'id_siswa');
+        return $this->belongsTo(CalonSiswa::class, 'calon_siswa_id');
     }
 }

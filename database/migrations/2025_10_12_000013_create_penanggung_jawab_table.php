@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('penanggung_jawab', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('id_siswa'); // FK ke calon_siswa nanti bisa ditambahkan
+            $table->foreignId('calon_siswa_id')->constrained('calon_siswa')->onDelete('cascade');
             $table->enum('hubungan', ['Ayah', 'Ibu', 'Wali']);
             $table->string('nama_lengkap', 100);
             $table->integer('tahun_lahir')->nullable();
@@ -20,8 +20,8 @@ return new class extends Migration {
             $table->timestamps();
 
             // Index dan unique constraint
-            $table->unique(['id_siswa', 'hubungan'], 'uk_siswa_hubungan');
-            $table->index('id_siswa');
+            $table->unique(['calon_siswa_id', 'hubungan'], 'uk_siswa_hubungan');
+            $table->index('calon_siswa_id');
         });
     }
 
