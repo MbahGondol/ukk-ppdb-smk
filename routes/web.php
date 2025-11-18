@@ -12,10 +12,10 @@ use App\Http\Controllers\Admin\VerifikasiController;
 use App\Http\Controllers\Siswa\DokumenController;
 use App\Http\Controllers\Siswa\PembayaranController;
 use App\Http\Controllers\Admin\PendaftarController;
+use App\Http\Controllers\PublicController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [PublicController::class, 'beranda'])->name('beranda');
+Route::get('/profil-sekolah', [PublicController::class, 'profil'])->name('profil');
 
 
 // == GRUP AUTENTIKASI ==
