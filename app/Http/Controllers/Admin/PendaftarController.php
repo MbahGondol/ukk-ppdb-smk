@@ -19,7 +19,7 @@ class PendaftarController extends Controller
         $status_filter = $request->query('status');
 
         // 2. Mulai bangun query. Ambil relasi yang kita butuhkan.
-        $query = CalonSiswa::with(['user', 'jurusan', 'tipeKelas']);
+        $query = CalonSiswa::with(['user', 'jurusan', 'tipeKelas', 'gelombang']);
 
         // 3. LOGIKA FILTER: Jika ada filter 'status' di URL...
         if ($status_filter) {

@@ -3,10 +3,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\User; // <-- 1. IMPORT MODEL USER
-use Illuminate\Support\Facades\Hash; // <-- 2. IMPORT HASH (untuk enkripsi)
-use Illuminate\Support\Facades\Auth; // <-- 3. IMPORT AUTH (Satpam Laravel)
+use App\Models\User; 
+use Illuminate\Support\Facades\Hash; 
+use Illuminate\Support\Facades\Auth; 
 use Illuminate\Validation\Rules;
+use App\Models\CalonSiswa;
 
 class AuthController extends Controller
 {
@@ -113,11 +114,17 @@ class AuthController extends Controller
     // ...
     public function dashboard()
     {
-        $role = Auth::user()->role;
+        $role = Auth::user()->role; 
 
         if ($role == 'admin') {
-            return view('admin.dashboard'); 
-        
+            // HITUNG STATISTIK
+            $total_pendaftar = CalonSiswa::count();
+            $perlu_verifikasi = CalonSiswa::where('status_pendaftaran', 'Terdaftar')->count();
+            $diterima = CalonSiswa::where('status_pendaftaran', 'Resmi Diterima')->count();
+            $ditolak = CalonSiswa::where('status_pendaftaran', 'Ditolak')->count();
+
+            // Kirim data ke view
+            return view('admin.dashboard', compact('total_pendaftar', 'perlu_verifikasi', 'diterima', 'ditolak'));
         } 
         elseif ($role == 'siswa') {
             
@@ -127,7 +134,7 @@ class AuthController extends Controller
                     <button type="submit">Logout</button>
                 </form>
             ';
-            return '<h3>Ini Dashboard SISWA.</h3>' . $logoutForm; 
+            return redirect()->route('siswa.dashboard'); 
         }
 
         return 'Role tidak dikenal.';

@@ -17,6 +17,8 @@ use App\Http\Controllers\PublicController;
 Route::get('/', [PublicController::class, 'beranda'])->name('beranda');
 Route::get('/profil-sekolah', [PublicController::class, 'profil'])->name('profil');
 
+Route::get('/info-jurusan', [PublicController::class, 'infoJurusan'])->name('info.jurusan');
+
 
 // == GRUP AUTENTIKASI ==
 // Menggunakan Controller Group agar lebih rapi
@@ -42,14 +44,7 @@ Route::controller(AuthController::class)->group(function () {
         // Rute untuk logout
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-        Route::get('/dashboard', function () {
-            if (Auth::user()->role == 'admin') {
-                return view('admin.dashboard');
-            } elseif (Auth::user()->role == 'siswa') {
-                // LEMPAR KE CONTROLLER SISWA
-                return redirect()->route('siswa.dashboard');
-            }
-        })->name('dashboard');
+        Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
 
         // ========================
         // --- GRUP KHUSUS ADMIN ---
@@ -58,9 +53,14 @@ Route::controller(AuthController::class)->group(function () {
             
             // Rute untuk CRUD Jurusan
             Route::resource('jurusan', JurusanController::class);
+
+            Route::resource('gelombang', App\Http\Controllers\Admin\GelombangController::class);
+            Route::resource('promo', App\Http\Controllers\Admin\PromoController::class);
             
             // Rute Manajemen Kuota
             Route::get('kuota', [KuotaController::class, 'index'])->name('kuota.index');
+            Route::get('kuota/create', [KuotaController::class, 'create'])->name('kuota.create');
+            Route::post('kuota', [KuotaController::class, 'store'])->name('kuota.store');
             Route::get('kuota/{id}/edit', [KuotaController::class, 'edit'])->name('kuota.edit');
             Route::put('kuota/{id}', [KuotaController::class, 'update'])->name('kuota.update');
 
@@ -90,6 +90,10 @@ Route::controller(AuthController::class)->group(function () {
             
             // Rute untuk Dashboard Siswa (yang "pintar")
             Route::get('dashboard', [SiswaDashboardController::class, 'index'])->name('dashboard');
+
+            Route::get('biodata', [SiswaDashboardController::class, 'lihatBiodata'])->name('biodata');
+
+            Route::get('cetak-bukti', [SiswaDashboardController::class, 'cetakBukti'])->name('cetak.bukti');
             
             // Rute untuk menampilkan form pendaftaran
             Route::get('pendaftaran', [PendaftaranController::class, 'create'])->name('pendaftaran.create');

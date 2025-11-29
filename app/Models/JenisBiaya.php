@@ -20,6 +20,6 @@ class JenisBiaya extends Model
      */
     public function biayaPerKelas(): HasMany
     {
-        return $this->hasMany(BiayaPerJurusanTipeKelas::class, 'id_jenis_biaya');
+        return $this->hasMany(BiayaPerJurusanTipeKelas::class, 'jenis_biaya_id');
     }
 }

@@ -18,6 +18,6 @@ class BuktiPembayaran extends Model
      */
     public function pembayaranSiswa(): BelongsTo
     {
-        return $this->belongsTo(PembayaranSiswa::class, 'id_pembayaran');
+        return $this->belongsTo(PembayaranSiswa::class, 'pembayaran_id');
     }
 }

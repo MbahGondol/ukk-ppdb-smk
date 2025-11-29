@@ -18,9 +18,10 @@ class DatabaseSeeder extends Seeder
             GelombangSeeder::class,
             JurusanSeeder::class,
             TipeKelasSeeder::class,
-            JurusanTipeKelasSeeder::class, // <-- Harus setelah Jurusan & TipeKelas
+            JurusanTipeKelasSeeder::class, 
             JenisBiayaSeeder::class,
-            BiayaPerJurusanTipeKelasSeeder::class, // <-- Harus setelah JenisBiaya & JurusanTipeKelas
+            BiayaPerJurusanTipeKelasSeeder::class, 
+            SiswaSeeder::class,
         ]);
     }
 }

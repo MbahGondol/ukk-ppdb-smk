@@ -21,27 +21,36 @@ class PendaftaranController extends Controller
      */
     public function create()
     {
-        // Cek dulu, jangan-jangan dia sudah daftar tapi maksa buka URL
+        // Cek dulu, jangan-jangan dia sudah daftar
         if (Auth::user()->calonSiswa) {
             return redirect()->route('siswa.dashboard');
         }
 
-        // 1. Ambil data master untuk dropdown
+        // 1. Ambil data JurusanTipeKelas
         $data_jurusan_tipe_kelas = JurusanTipeKelas::with(['jurusan', 'tipeKelas'])->get();
         
-        // 2. Ambil data tahun ajaran & gelombang yang AKTIF
-        // (Kita anggap hanya ada 1 yang aktif)
+        // 2. PERBAIKAN: Hitung jumlah pendaftar secara MANUAL (Looping)
+        // Karena kita tidak punya relasi langsung di model
+        foreach ($data_jurusan_tipe_kelas as $kombinasi) {
+            $jumlah = CalonSiswa::where('jurusan_id', $kombinasi->jurusan_id)
+                                ->where('tipe_kelas_id', $kombinasi->tipe_kelas_id)
+                                ->whereNotIn('status_pendaftaran', ['Ditolak', 'Draft'])
+                                ->count();
+            
+            // Kita "tempelkan" data jumlah ini ke objek agar bisa dibaca di View
+            $kombinasi->jumlah_pendaftar = $jumlah;
+        }
+        
+        // 3. Ambil data tahun & gelombang aktif
         $tahun_aktif = TahunAkademik::where('aktif', true)->first();
         $gelombang_aktif = Gelombang::where('tanggal_mulai', '<=', now())
                                     ->where('tanggal_selesai', '>=', now())
                                     ->first();
 
-        // 3. Validasi darurat jika admin lupa setting
         if (!$tahun_aktif || !$gelombang_aktif) {
             return 'Pendaftaran belum dibuka oleh Admin. (Tahun Ajaran / Gelombang tidak ditemukan)';
         }
 
-        // 4. Kirim data ke View
         return view('siswa.pendaftaran_form', [
             'data_jurusan_tipe_kelas' => $data_jurusan_tipe_kelas,
             'tahun_aktif' => $tahun_aktif,
@@ -51,13 +60,12 @@ class PendaftaranController extends Controller
 
     /**
      * Menyimpan data pendaftaran (CREATE - Logic)
-     * Ini adalah logika paling penting di sisi siswa.
      */
     public function store(Request $request)
     {
-        // 1. Validasi data (Bisa Anda tambahkan lebih banyak)
+        // 1. Validasi Data Input
         $validator = Validator::make($request->all(), [
-            // Data Siswa
+            // Data Wajib
             'nisn' => 'required|string|digits:10|unique:calon_siswa,nisn',
             'nik' => 'required|string|digits:16|unique:calon_siswa,nik',
             'nama_lengkap' => 'required|string|max:150',
@@ -68,48 +76,78 @@ class PendaftaranController extends Controller
             'no_hp' => 'required|string|max:20',
             'asal_sekolah' => 'required|string|max:150',
             'jurusan_tipe_kelas_id' => 'required|exists:jurusan_tipe_kelas,id',
-            // ... (validasi lain: tempat_lahir, tgl_lahir, alamat, dll)
-
-            // Data Ayah
+            'alamat' => 'required|string',
+            'rt_rw' => 'required|string|max:20',
+            'desa_kelurahan' => 'required|string|max:100',
+            'kecamatan' => 'required|string|max:100',
+            'kota_kab' => 'required|string|max:100',
+            'kode_pos' => 'required|string|max:10',
+            'tahun_lulus' => 'required|integer|digits:4',
+            
+            // Data Tambahan
+            'anak_ke' => 'nullable|integer',
+            'jumlah_saudara' => 'nullable|integer',
+            'tinggi_badan' => 'nullable|integer',
+            'berat_badan' => 'nullable|integer',
+            
+            // Data Ortu
             'nama_ayah' => 'required|string|max:100',
-            'nik_ayah' => 'nullable|string|digits:16',
-            // ... (validasi lain: pekerjaan_ayah, no_hp_ayah, dll)
+            'nik_ayah' => 'nullable|string|max:16', 
+            'tahun_lahir_ayah' => 'nullable|integer|digits:4',
+            'pendidikan_ayah' => 'nullable|string',
+            'pekerjaan_ayah' => 'nullable|string',
+            'penghasilan_ayah' => 'nullable|numeric|max:9999999999999',
+            'nohp_ayah' => 'nullable|string',
 
-            // Data Ibu
             'nama_ibu' => 'required|string|max:100',
-            // ... (validasi lain: pekerjaan_ibu, no_hp_ibu, dll)
+            'nik_ibu' => 'nullable|string|max:16', 
+            'tahun_lahir_ibu' => 'nullable|integer|digits:4',
+            'pendidikan_ibu' => 'nullable|string',
+            'pekerjaan_ibu' => 'nullable|string',
+            'penghasilan_ibu' => 'nullable|numeric|max:9999999999999',
+            'nohp_ibu' => 'nullable|string',
+
+            'nama_wali' => 'nullable|string|max:100',
+            'hubungan_wali' => 'nullable|string',
+            'alamat_wali' => 'nullable|string',
+            'nohp_wali' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
-            return redirect()->route('siswa.pendaftaran.create')
-                        ->withErrors($validator)
-                        ->withInput();
+            return redirect()->route('siswa.pendaftaran.create')->withErrors($validator)->withInput();
         }
 
-        // 2. LOGIKA PENDAFTARAN (WAJIB PAKAI TRANSACTION)
-        // "Transaction" memastikan jika salah satu query gagal (misal simpan data Ayah gagal),
-        // maka data Siswa juga akan di-rollback (dibatalkan).
-        // Ini mencegah data "hantu" (ada data siswa, tapi data ayahnya tidak ada).
+        // 2. VALIDASI KUOTA (PERBAIKAN DI SINI JUGA)
+        // Ambil data jurusan pilihan
+        $pilihan = JurusanTipeKelas::with(['jurusan', 'tipeKelas'])->findOrFail($request->jurusan_tipe_kelas_id);
         
+        // Hitung pendaftar saat ini secara manual
+        $terisi = CalonSiswa::where('jurusan_id', $pilihan->jurusan_id)
+                            ->where('tipe_kelas_id', $pilihan->tipe_kelas_id)
+                            ->whereNotIn('status_pendaftaran', ['Ditolak', 'Draft'])
+                            ->count();
+
+        if ($terisi >= $pilihan->kuota_kelas) {
+            return redirect()->route('siswa.pendaftaran.create')
+                ->withInput()
+                ->withErrors(['jurusan_tipe_kelas_id' => 'Mohon maaf, kuota untuk jurusan ' . $pilihan->jurusan->nama_jurusan . ' baru saja PENUH. Silakan pilih jurusan lain.']);
+        }
+
+        // 3. Simpan Data (Transaction)
         try {
             DB::transaction(function () use ($request) {
-                // Ambil data aktif (dari hidden input)
                 $tahun_aktif = TahunAkademik::findOrFail($request->tahun_akademik_id);
                 $gelombang_aktif = Gelombang::findOrFail($request->gelombang_id);
                 $jurusan_tipe_kelas = JurusanTipeKelas::findOrFail($request->jurusan_tipe_kelas_id);
 
-                // A. Buat Nomor Pendaftaran Unik
-                // Format: TAHUN + ID_GELOMBANG + ID_JURUSAN + 4 Digit Acak
                 $no_pendaftaran = date('Y') . $gelombang_aktif->id . $jurusan_tipe_kelas->jurusan_id . rand(1000, 9999);
 
-                // B. Simpan ke tabel 'calon_siswa' (File L)
+                // Simpan Siswa
                 $calonSiswa = CalonSiswa::create([
-                    'user_id' => Auth::id(), // <-- Relasi ke Akun
+                    'user_id' => Auth::id(),
                     'no_pendaftaran' => $no_pendaftaran,
-                    'status_pendaftaran' => 'Melengkapi Berkas', 
+                    'status_pendaftaran' => 'Melengkapi Berkas',
                     'tanggal_submit' => now(),
-
-                    // Data dari Form
                     'nisn' => $request->nisn,
                     'nik' => $request->nik,
                     'nama_lengkap' => $request->nama_lengkap,
@@ -119,56 +157,70 @@ class PendaftaranController extends Controller
                     'agama' => $request->agama,
                     'no_hp' => $request->no_hp,
                     'asal_sekolah' => $request->asal_sekolah,
-                    // ... (isi semua kolom lain dari $request)
-
-                    // Data Pilihan
+                    'alamat' => $request->alamat,
+                    'rt_rw' => $request->rt_rw,
+                    'desa_kelurahan' => $request->desa_kelurahan,
+                    'kecamatan' => $request->kecamatan,
+                    'kota_kab' => $request->kota_kab,
+                    'kode_pos' => $request->kode_pos,
+                    'tahun_lulus' => $request->tahun_lulus,
+                    'anak_ke' => $request->anak_ke,
+                    'jumlah_saudara' => $request->jumlah_saudara,
+                    'tinggi_badan' => $request->tinggi_badan,
+                    'berat_badan' => $request->berat_badan,
                     'jurusan_id' => $jurusan_tipe_kelas->jurusan_id,
                     'tipe_kelas_id' => $jurusan_tipe_kelas->tipe_kelas_id,
-                    
-                    // Data Sistem
                     'tahun_akademik_id' => $tahun_aktif->id,
                     'gelombang_id' => $gelombang_aktif->id,
-                    'promo_id' => $gelombang_aktif->promo_id, // Ambil promo dari gelombang
+                    'promo_id' => $gelombang_aktif->promo_id,
                 ]);
 
-                // C. Simpan ke tabel 'penanggung_jawab' (Data Ayah)
+                // Simpan Ayah
                 PenanggungJawab::create([
-                    'calon_siswa_id' => $calonSiswa->id, // <-- Relasi ke Siswa
+                    'calon_siswa_id' => $calonSiswa->id,
                     'hubungan' => 'Ayah',
                     'nama_lengkap' => $request->nama_ayah,
                     'nik' => $request->nik_ayah,
-                    // ... (isi semua kolom data Ayah dari $request)
+                    'tahun_lahir' => $request->tahun_lahir_ayah,
+                    'pendidikan_terakhir' => $request->pendidikan_ayah,
+                    'pekerjaan' => $request->pekerjaan_ayah,
+                    'penghasilan_bulanan' => $request->penghasilan_ayah,
+                    'no_hp' => $request->nohp_ayah,
                 ]);
 
-                // D. Simpan ke tabel 'penanggung_jawab' (Data Ibu)
+                // Simpan Ibu
                 PenanggungJawab::create([
-                    'calon_siswa_id' => $calonSiswa->id, // <-- Relasi ke Siswa
+                    'calon_siswa_id' => $calonSiswa->id,
                     'hubungan' => 'Ibu',
                     'nama_lengkap' => $request->nama_ibu,
-                    // ... (isi semua kolom data Ibu dari $request)
+                    'nik' => $request->nik_ibu,
+                    'tahun_lahir' => $request->tahun_lahir_ibu,
+                    'pendidikan_terakhir' => $request->pendidikan_ibu,
+                    'pekerjaan' => $request->pekerjaan_ibu,
+                    'penghasilan_bulanan' => $request->penghasilan_ibu,
+                    'no_hp' => $request->nohp_ibu,
                 ]);
 
-                // E. (Opsional) Simpan Data Wali jika diisi
+                // Simpan Wali
                 if ($request->filled('nama_wali')) {
                     PenanggungJawab::create([
                         'calon_siswa_id' => $calonSiswa->id,
                         'hubungan' => 'Wali',
                         'nama_lengkap' => $request->nama_wali,
-                        // ... (isi semua kolom data Wali dari $request)
+                        'alamat_wali' => $request->alamat_wali,
+                        'no_hp' => $request->nohp_wali,
+                        'pekerjaan' => $request->hubungan_wali,
                     ]);
                 }
-
-            }); // <-- Akhir dari Transaction
+            });
 
         } catch (\Exception $e) {
-            // Jika terjadi error di dalam Transaction
             return redirect()->route('siswa.pendaftaran.create')
-                         ->withErrors(['database' => 'Terjadi kesalahan saat menyimpan data: ' . $e->getMessage()])
-                         ->withInput();
+                        ->withErrors(['database' => 'Terjadi kesalahan: ' . $e->getMessage()])
+                        ->withInput();
         }
 
-        // 3. Jika Transaction SUKSES
         return redirect()->route('siswa.dashboard')
-                         ->with('success', 'Pendaftaran Anda berhasil disubmit! Silakan lanjut ke tahap upload dokumen.');
+                        ->with('success', 'Pendaftaran berhasil! Silakan upload dokumen.');
     }
 }

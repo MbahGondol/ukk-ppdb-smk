@@ -19,7 +19,6 @@ class PembayaranController extends Controller
 {
     /**
      * Menampilkan halaman tagihan dan form upload.
-     * (LOGIKA "READ" - CANGGIH)
      */
     public function index()
     {
@@ -30,47 +29,68 @@ class PembayaranController extends Controller
             return redirect()->route('siswa.dashboard')->with('error', 'Anda harus mengisi formulir pendaftaran terlebih dahulu.');
         }
 
-        // 2. LOGIKA KUNCI: Cari "Tagihan Induk" (RencanaPembayaran)
-        $tagihanInduk = RencanaPembayaran::where('calon_siswa_id', $siswa->id)->first();
+        // --- LANGKAH 1: HITUNG TOTAL HARGA TERBARU (DENGAN DISKON) ---
+        
+        // A. Cari ID JurusanTipeKelas siswa
+        $jurusanTipeKelas = JurusanTipeKelas::where('jurusan_id', $siswa->jurusan_id)
+                                            ->where('tipe_kelas_id', $siswa->tipe_kelas_id)
+                                            ->first();
 
-        // 3. Jika "Tagihan Induk" BELUM ADA, maka kita BUATKAN
-        if (!$tagihanInduk) {
-
-            // A. Cari ID JurusanTipeKelas yang dipilih siswa
-            $jurusanTipeKelas = JurusanTipeKelas::where('jurusan_id', $siswa->jurusan_id)
-                                              ->where('tipe_kelas_id', $siswa->tipe_kelas_id)
-                                              ->first();
-
-            // B. Tambahkan keamanan jika kombinasinya tidak ditemukan
-            if (!$jurusanTipeKelas) {
-                return back()->with('error', 'Gagal menemukan data biaya untuk jurusan Anda. Hubungi Admin.');
-            }
-
-            // C. Sekarang kita punya ID yang benar
-            $jurusanTipeKelasId = $jurusanTipeKelas->id; 
-                            
-            // D. Cari semua biaya yang terkait dengan ID itu
-            $semua_biaya = BiayaPerJurusanTipeKelas::where('jurusan_tipe_kelas_id', $jurusanTipeKelasId)->get();
-            
-            // E. Hitung totalnya
-            $total_biaya = $semua_biaya->sum('nominal');
-
-            // F. Buat "Tagihan Induk" (RencanaPembayaran - File O)
-            $tagihanInduk = RencanaPembayaran::create([
-                'calon_siswa_id' => $siswa->id,
-                'total_nominal_biaya' => $total_biaya,
-                'total_sudah_dibayar' => 0,
-                'status' => 'Belum Lunas',
-            ]);
+        if (!$jurusanTipeKelas) {
+            return back()->with('error', 'Gagal menemukan data jurusan. Hubungi Admin.');
         }
 
-        // 4. Ambil semua riwayat pembayaran yang sudah di-upload
+        // B. Hitung Total Harga KASAR (Tanpa Diskon)
+        $total_kasar = BiayaPerJurusanTipeKelas::where('jurusan_tipe_kelas_id', $jurusanTipeKelas->id)
+                                                ->sum('nominal');
+
+        // C. Hitung Potongan PROMO (LOGIKA BARU)
+        $potongan = 0;
+        if ($siswa->promo) {
+            $potongan = $siswa->promo->potongan;
+        }
+
+        // D. Hitung Total BERSIH (Total - Potongan)
+        $total_bersih = $total_kasar - $potongan;
+        if ($total_bersih < 0) $total_bersih = 0; // Jaga-jaga agar tidak minus
+
+
+        // --- LANGKAH 2: CEK ATAU BUAT TAGIHAN INDUK ---
+
+        $tagihanInduk = RencanaPembayaran::firstOrCreate(
+            ['calon_siswa_id' => $siswa->id],
+            [
+                // Jika baru pertama kali, pakai Total BERSIH
+                'total_nominal_biaya' => $total_bersih, 
+                'total_sudah_dibayar' => 0,
+                'status' => 'Belum Lunas',
+            ]
+        );
+
+        // --- LANGKAH 3: FITUR AUTO-UPDATE (PINTAR) ---
+        
+        // Jika siswa BELUM pernah bayar, kita cek apakah harganya berubah?
+        // (Misal: Admin ubah harga, atau Promo baru masuk)
+        if ($tagihanInduk->total_sudah_dibayar == 0) {
+            // Cek apakah tagihan di database BEDA dengan perhitungan baru kita?
+            // Kita pakai intval() untuk memastikan perbandingan angka akurat
+            if (intval($tagihanInduk->total_nominal_biaya) != intval($total_bersih)) {
+                
+                $tagihanInduk->update([
+                    'total_nominal_biaya' => $total_bersih
+                ]);
+                
+                $tagihanInduk->refresh(); // Refresh data agar tampilan view update
+            }
+        }
+
+        // --- LANGKAH 4: AMBIL RIWAYAT ---
+        
         $riwayat_pembayaran = PembayaranSiswa::where('rencana_pembayaran_id', $tagihanInduk->id)
                                             ->with('buktiPembayaran')
                                             ->orderBy('tanggal_pembayaran', 'desc')
                                             ->get();
 
-        // 5. Tampilkan View, kirim data tagihan dan riwayat
         return view('siswa.pembayaran', [
             'tagihan' => $tagihanInduk,
             'riwayat_pembayaran' => $riwayat_pembayaran,
@@ -79,9 +99,7 @@ class PembayaranController extends Controller
 
     /**
      * Menyimpan file bukti pembayaran.
-     * (LOGIKA "CREATE" - CANGGIH)
      */
-    // PERBAIKAN 2: Tambahkan (Request $request)
     public function store(Request $request) 
     {
         // 1. Validasi
@@ -93,19 +111,18 @@ class PembayaranController extends Controller
 
         $siswa = Auth::user()->calonSiswa;
         $file = $request->file('file_bukti');
-        $tagihanInduk = $siswa->rencanaPembayaran()->first(); // Asumsi tagihan sudah ada
+        $tagihanInduk = $siswa->rencanaPembayaran()->first(); 
 
-        // 2. Validasi tambahan (opsional tapi bagus)
+        // 2. Validasi sisa tagihan
         $sisa_tagihan = $tagihanInduk->total_nominal_biaya - $tagihanInduk->total_sudah_dibayar;
         if ($request->jumlah > $sisa_tagihan) {
-            return back()->with('error', 'Jumlah yang Anda bayarkan melebihi sisa tagihan.');
+            return back()->with('error', 'Jumlah yang Anda bayarkan melebihi sisa tagihan (Rp ' . number_format($sisa_tagihan, 0, ',', '.') . ').');
         }
         
-        // 3. LOGIKA KUNCI: Gunakan Transaction
+        // 3. Simpan
         try {
             DB::transaction(function () use ($request, $siswa, $file, $tagihanInduk) {
                 
-                // A. Simpan data pembayaran (File P)
                 $pembayaran = PembayaranSiswa::create([
                     'rencana_pembayaran_id' => $tagihanInduk->id,
                     'jumlah' => $request->jumlah,
@@ -114,24 +131,19 @@ class PembayaranController extends Controller
                     'status' => 'Pending', 
                 ]);
 
-                // B. Buat nama file unik
                 $nama_file_unik = 'bayar_' . $siswa->id . '_' . $pembayaran->id . '.' . $file->getClientOriginalExtension();
-
-                // C. Simpan file ke "Gudang"
                 $path = $file->storeAs('bukti_pembayaran', $nama_file_unik, 'public');
 
-                // D. Simpan data bukti pembayaran (File Q)
                 BuktiPembayaran::create([
                     'pembayaran_id' => $pembayaran->id,
                     'file_path' => $path,
                 ]);
 
-                // E. LOGIKA UTAMA: Ubah Status Siswa
                 if ($siswa->status_pendaftaran == 'Melengkapi Berkas') {
                     $siswa->update(['status_pendaftaran' => 'Terdaftar']);
                 }
 
-            }); // <-- Akhir dari Transaction
+            }); 
 
         } catch (\Exception $e) {
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
@@ -142,35 +154,28 @@ class PembayaranController extends Controller
 
     /**
      * Menghapus file bukti pembayaran.
-     * (LOGIKA "DELETE")
      */
     public function destroy(string $id) 
     {
         $pembayaran = PembayaranSiswa::findOrFail($id);
         $siswa = Auth::user()->calonSiswa;
 
-        // 1. Keamanan: Pastikan pemilik yang menghapus
         if ($pembayaran->rencanaPembayaran->calon_siswa_id != $siswa->id) {
             return back()->with('error', 'Anda tidak punya izin.');
         }
 
-        // 2. Keamanan: Jangan biarkan siswa menghapus yang sudah "Verified"
         if ($pembayaran->status == 'Verified') {
             return back()->with('error', 'Tidak bisa menghapus pembayaran yang sudah divalidasi.');
         }
 
-        // 3. Gunakan Transaction (Hapus file, Bukti, dan Pembayaran)
         try {
             DB::transaction(function () use ($pembayaran) {
-                // A. Hapus file dari "Gudang" (Storage)
                 if ($pembayaran->buktiPembayaran) {
                     Storage::disk('public')->delete($pembayaran->buktiPembayaran->file_path);
-                    $pembayaran->buktiPembayaran->delete(); // Hapus dari tabel bukti_pembayaran
+                    $pembayaran->buktiPembayaran->delete();
                 }
-                
-                // B. Hapus dari tabel pembayaran
                 $pembayaran->delete();
-            }); // <-- Akhir dari Transaction
+            }); 
 
         } catch (\Exception $e) {
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());

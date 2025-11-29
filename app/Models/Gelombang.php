@@ -13,7 +13,13 @@ class Gelombang extends Model
 
     protected $table = 'gelombang';
     protected $guarded = ['id'];
-    protected $dates = ['tanggal_mulai', 'tanggal_selesai'];
+    /**
+     * Atribut yang harus di-cast ke tipe bawaan.
+     */
+    protected $casts = [
+        'tanggal_mulai' => 'date',
+        'tanggal_selesai' => 'date',
+    ];
 
     /**
      * Relasi N:1 ke Promo

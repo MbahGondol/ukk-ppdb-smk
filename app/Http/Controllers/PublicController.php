@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Gelombang; 
+use App\Models\Jurusan;
 
 class PublicController extends Controller
 {
@@ -30,5 +31,19 @@ class PublicController extends Controller
     public function profil()
     {
         return view('public.profil');
+    }
+
+    /**
+     * Menampilkan halaman Info Jurusan (Publik).
+     */
+    public function infoJurusan()
+    {
+        // Ambil semua data jurusan yang statusnya 'aktif'
+        $semua_jurusan = Jurusan::where('aktif', true)->get();
+        
+        // Kirim data ke view
+        return view('public.info_jurusan', [
+            'semua_jurusan' => $semua_jurusan
+        ]);
     }
 }

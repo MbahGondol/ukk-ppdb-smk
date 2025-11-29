@@ -5,35 +5,77 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\JurusanTipeKelas;
+use App\Models\Jurusan;
+use App\Models\TipeKelas;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class KuotaController extends Controller
 {
     /**
      * Menampilkan daftar semua kuota.
-     * (LOGIKA "READ")
      */
     public function index()
     {
-        // 1. Ambil data kuota.
         $data_kuota = JurusanTipeKelas::with(['jurusan', 'tipeKelas'])->get();
 
-        // 2. Tampilkan View, kirim data $data_kuota ke dalamnya
         return view('admin.kuota.index', [
             'data_kuota' => $data_kuota
         ]);
     }
 
     /**
+     * Menampilkan form untuk menambah kombinasi Jurusan-Kelas baru.
+     */
+    public function create()
+    {
+        // Ambil data untuk Dropdown
+        $jurusans = Jurusan::where('aktif', true)->get();
+        $tipeKelas = TipeKelas::all();
+        
+        return view('admin.kuota.create', compact('jurusans', 'tipeKelas'));
+    }
+
+    /**
+     * Menyimpan data kuota baru.
+     */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'jurusan_id' => 'required|exists:jurusan,id',
+            'tipe_kelas_id' => [
+                'required',
+                'exists:tipe_kelas,id',
+                // Validasi Unik Kombinasi:
+                // Pastikan pasangan Jurusan + Tipe Kelas ini belum ada di database
+                Rule::unique('jurusan_tipe_kelas')->where(function ($query) use ($request) {
+                    return $query->where('jurusan_id', $request->jurusan_id);
+                }),
+            ],
+            'kuota_kelas' => 'required|integer|min:1',
+        ], [
+            'tipe_kelas_id.unique' => 'Kombinasi Jurusan dan Tipe Kelas ini sudah ada. Silakan edit data yang lama saja.',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('admin.kuota.create')
+                        ->withErrors($validator)
+                        ->withInput();
+        }
+
+        JurusanTipeKelas::create($request->all());
+
+        return redirect()->route('admin.kuota.index')
+                         ->with('success', 'Kelas dan Kuota baru berhasil ditambahkan.');
+    }
+
+    /**
      * Menampilkan form untuk mengedit kuota.
-     * (LOGIKA UNTUK "UPDATE" - TAHAP 1)
      */
     public function edit(string $id)
     {
-        // 1. Cari 1 data kuota yang mau diedit berdasarkan ID
         $kuota = JurusanTipeKelas::with(['jurusan', 'tipeKelas'])->findOrFail($id);
 
-        // 2. Tampilkan view form edit, kirim data $kuota
         return view('admin.kuota.edit', [
             'kuota' => $kuota
         ]);
@@ -41,13 +83,11 @@ class KuotaController extends Controller
 
     /**
      * Memproses data dari form 'edit' dan menyimpannya.
-     * (LOGIKA UNTUK "UPDATE" - TAHAP 2)
      */
     public function update(Request $request, string $id)
     {
-        // 1. Validasi data (Aturan)
         $validator = Validator::make($request->all(), [
-            'kuota_kelas' => 'required|integer|min:0', 
+            'kuota_kelas' => 'required|integer|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -56,15 +96,11 @@ class KuotaController extends Controller
                         ->withInput();
         }
 
-        // 2. Cari data yang mau di-update
         $kuota = JurusanTipeKelas::findOrFail($id);
-
-        // 3. Update datanya di database
         $kuota->update([
             'kuota_kelas' => $request->kuota_kelas
         ]);
 
-        // 4. Alihkan kembali ke halaman index dengan pesan sukses
         return redirect()->route('admin.kuota.index')
                          ->with('success', 'Kuota berhasil diperbarui.');
     }

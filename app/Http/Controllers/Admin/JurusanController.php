@@ -73,26 +73,72 @@ class JurusanController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Menampilkan form untuk mengedit jurusan.
+     * (LOGIKA "UPDATE" - FORM)
      */
     public function edit(string $id)
     {
-        //
+        // 1. Cari data jurusan berdasarkan ID
+        $jurusan = Jurusan::findOrFail($id);
+
+        // 2. Tampilkan View edit, kirim data $jurusan
+        return view('admin.jurusan.edit', [
+            'jurusan' => $jurusan
+        ]);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Mengupdate data jurusan di database.
+     * (LOGIKA "UPDATE" - SIMPAN)
      */
     public function update(Request $request, string $id)
     {
-        //
+        // 1. Cari data yang mau di-update
+        $jurusan = Jurusan::findOrFail($id);
+
+        // 2. Validasi data
+        $validator = Validator::make($request->all(), [
+            // Rule unique: abaikan ID diri sendiri agar tidak error jika nama tidak berubah
+            'kode_jurusan' => 'required|string|unique:jurusan,kode_jurusan,' . $jurusan->id,
+            'nama_jurusan' => 'required|string|max:255',
+            'deskripsi' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('admin.jurusan.edit', $jurusan->id)
+                        ->withErrors($validator)
+                        ->withInput();
+        }
+
+        // 3. Update data
+        $jurusan->update([
+            'kode_jurusan' => $request->kode_jurusan,
+            'nama_jurusan' => $request->nama_jurusan,
+            'deskripsi' => $request->deskripsi,
+        ]);
+
+        // 4. Redirect
+        return redirect()->route('admin.jurusan.index')
+                         ->with('success', 'Data jurusan berhasil diperbarui.');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Menghapus jurusan.
+     * (LOGIKA "DELETE")
      */
     public function destroy(string $id)
     {
-        //
+        try {
+            $jurusan = Jurusan::findOrFail($id);
+            $jurusan->delete();
+            
+            return redirect()->route('admin.jurusan.index')
+                             ->with('success', 'Jurusan berhasil dihapus.');
+                             
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Jika gagal karena foreign key (misal sudah ada siswa atau kuota)
+            return redirect()->route('admin.jurusan.index')
+                             ->with('error', 'GAGAL! Jurusan ini tidak bisa dihapus karena sedang digunakan (mungkin ada siswa atau kuota yang terhubung).');
+        }
     }
 }

@@ -21,9 +21,10 @@
                     SMK Pejantan Tangguh
                 </a>
                 
-                <div class="flex items-center">
+                <div class="flex items-center flex-wrap">
                     <a href="{{ route('beranda') }}" class="text-white hover:text-gray-200 font-medium px-3">Beranda</a>
                     <a href="{{ route('profil') }}" class="text-white hover:text-gray-200 font-medium px-3">Profil Sekolah</a>
+                    <a href="{{ route('info.jurusan') }}" class="text-white hover:text-gray-200 font-medium px-3">Info Jurusan</a>
                     <div class="border-l border-blue-400 h-6 mx-3"></div>
                     
                     @auth

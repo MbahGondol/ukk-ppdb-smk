@@ -1,169 +1,243 @@
-<!DOCTYPE html>
-<html lang="en">
-<head><title>Detail Siswa: {{ $siswa->nama_lengkap }}</title></head>
-<body style="font-family: sans-serif;">
+@extends('layouts.admin')
+
+@section('title', 'Detail Siswa')
+@section('header', 'Detail Lengkap Pendaftar')
+
+@section('content')
     @php
         use Illuminate\Support\Facades\Storage;
         use Carbon\Carbon;
     @endphp
 
-    <a href="{{ url()->previous() }}">&laquo; Kembali ke Halaman Sebelumnya</a>
-    <hr>
-    
-    <h1>Detail Pendaftar: {{ $siswa->nama_lengkap }}</h1>
-    <p>No. Pendaftaran: <strong>{{ $siswa->no_pendaftaran }}</strong> | Status: <strong>{{ $siswa->status_pendaftaran }}</strong></p>
-    
-    @if ($siswa->status_pendaftaran == 'Ditolak' && $siswa->catatan_admin)
-        <div style="background: #fff0f0; border: 1px solid red; padding: 10px; margin-bottom: 20px;">
-            <strong>Alasan Penolakan:</strong><br>
-            {{ $siswa->catatan_admin }}
-        </div>
-    @endif
+    <a href="{{ url()->previous() }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded inline-flex items-center mb-6">
+        &larr; Kembali
+    </a>
 
-    @if ($siswa->status_pendaftaran == 'Terdaftar')
-        <div style="background: #eee; padding: 15px; margin-bottom: 20px;">
-            <h3>Aksi Verifikasi</h3>
-            <p>Setelah memeriksa semua data di bawah, setujui atau tolak pendaftaran ini.</p>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <div class="lg:col-span-2 space-y-6">
             
-            <form action="{{ route('admin.verifikasi.updateStatus', $siswa->id) }}" method="POST" style="display: inline-block; vertical-align: top;">
-                @csrf
-                <input type="hidden" name="aksi" value="terima">
-                <button type="submit" style="background: green; color: white; padding: 10px;">
-                    ✔ Setujui (Lolos Verifikasi Awal)
-                </button>
-            </form>
-            
-            <form action="{{ route('admin.verifikasi.updateStatus', $siswa->id) }}" method="POST" style="display: inline-block; vertical-align: top; margin-left: 10px;">
-                @csrf
-                <input type="hidden" name="aksi" value="tolak">
-                
-                <div>
-                    <label for="catatan_admin">Alasan Penolakan (Wajib diisi jika menolak):</label><br>
-                    <textarea name="catatan_admin" id="catatan_admin" rows="3" style="width: 250px;"></textarea>
+            <div class="bg-white shadow rounded-lg overflow-hidden border-l-4 
+                {{ $siswa->status_pendaftaran == 'Terdaftar' ? 'border-yellow-400' : 
+                   ($siswa->status_pendaftaran == 'Ditolak' ? 'border-red-500' : 'border-green-500') }}">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">{{ $siswa->nama_lengkap }}</h2>
+                        <p class="text-sm text-gray-500">No. Daftar: <span class="font-mono font-bold">{{ $siswa->no_pendaftaran }}</span></p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-sm font-bold 
+                        {{ $siswa->status_pendaftaran == 'Terdaftar' ? 'bg-yellow-100 text-yellow-800' : 
+                           ($siswa->status_pendaftaran == 'Ditolak' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800') }}">
+                        {{ $siswa->status_pendaftaran }}
+                    </span>
                 </div>
                 
-                <button type="submit" style="background: red; color: white; padding: 10px;" onclick="return confirm('Anda yakin ingin MENOLAK siswa ini?')">
-                    X Tolak Pendaftaran
-                </button>
-            </form>
+                @if (($siswa->status_pendaftaran == 'Ditolak' || $siswa->status_pendaftaran == 'Melengkapi Berkas') && $siswa->catatan_admin)
+                    <div class="bg-red-50 p-4 border-t border-red-100">
+                        <strong class="text-red-800 block mb-1">Catatan Admin / Alasan Penolakan:</strong>
+                        <p class="text-red-700">{{ $siswa->catatan_admin }}</p>
+                    </div>
+                @endif
+            </div>
+
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
+                    Data Pribadi Siswa
+                </div>
+                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                    <div><span class="block text-gray-500 text-xs">NISN</span> <span class="font-semibold">{{ $siswa->nisn }}</span></div>
+                    <div><span class="block text-gray-500 text-xs">NIK</span> <span class="font-semibold">{{ $siswa->nik }}</span></div>
+                    <div><span class="block text-gray-500 text-xs">Jenis Kelamin</span> <span class="font-semibold">{{ $siswa->jenis_kelamin }}</span></div>
+                    <div><span class="block text-gray-500 text-xs">Tempat, Tgl Lahir</span> <span class="font-semibold">{{ $siswa->tempat_lahir }}, {{ $siswa->tanggal_lahir->format('d M Y') }}</span></div>
+                    <div><span class="block text-gray-500 text-xs">Agama</span> <span class="font-semibold">{{ $siswa->agama }}</span></div>
+                    <div><span class="block text-gray-500 text-xs">No. HP</span> <span class="font-semibold">{{ $siswa->no_hp }}</span></div>
+                    
+                    <div class="border-t pt-2 mt-2 md:col-span-2 grid grid-cols-2 gap-4">
+                        <div><span class="block text-gray-500 text-xs">Anak Ke-</span> <span class="font-semibold">{{ $siswa->anak_ke ?? '-' }}</span></div>
+                        <div><span class="block text-gray-500 text-xs">Jumlah Saudara</span> <span class="font-semibold">{{ $siswa->jumlah_saudara ?? '-' }}</span></div>
+                        <div><span class="block text-gray-500 text-xs">Tinggi Badan</span> <span class="font-semibold">{{ $siswa->tinggi_badan ? $siswa->tinggi_badan . ' cm' : '-' }}</span></div>
+                        <div><span class="block text-gray-500 text-xs">Berat Badan</span> <span class="font-semibold">{{ $siswa->berat_badan ? $siswa->berat_badan . ' kg' : '-' }}</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
+                    Alamat Tempat Tinggal
+                </div>
+                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                    <div class="md:col-span-2">
+                        <span class="block text-gray-500 text-xs">Alamat Jalan</span>
+                        <span class="font-semibold">{{ $siswa->alamat }}</span>
+                    </div>
+                    <div><span class="block text-gray-500 text-xs">RT / RW</span> <span class="font-semibold">{{ $siswa->rt_rw }}</span></div>
+                    <div><span class="block text-gray-500 text-xs">Kelurahan</span> <span class="font-semibold">{{ $siswa->desa_kelurahan }}</span></div>
+                    <div><span class="block text-gray-500 text-xs">Kecamatan</span> <span class="font-semibold">{{ $siswa->kecamatan }}</span></div>
+                    <div><span class="block text-gray-500 text-xs">Kabupaten/Kota</span> <span class="font-semibold">{{ $siswa->kota_kab }}</span></div>
+                    <div><span class="block text-gray-500 text-xs">Kode Pos</span> <span class="font-semibold">{{ $siswa->kode_pos }}</span></div>
+                </div>
+            </div>
+
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
+                    Akademik & Pilihan
+                </div>
+                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                    <div><span class="block text-gray-500 text-xs">Sekolah Asal</span> <span class="font-semibold">{{ $siswa->asal_sekolah }}</span></div>
+                    <div><span class="block text-gray-500 text-xs">Tahun Lulus</span> <span class="font-semibold">{{ $siswa->tahun_lulus }}</span></div>
+                    
+                    <div class="md:col-span-2 mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-3 bg-blue-50 rounded border border-blue-100">
+                            <span class="block text-blue-500 text-xs uppercase font-bold">Jurusan Pilihan</span>
+                            <span class="text-lg font-bold text-blue-800">
+                                {{ $siswa->jurusan->nama_jurusan }} 
+                                <span class="text-sm font-normal text-gray-600">({{ $siswa->tipeKelas->nama_tipe_kelas ?? 'Reguler' }})</span>
+                            </span>
+                        </div>
+                        <div class="p-3 bg-green-50 rounded border border-green-100">
+                            <span class="block text-green-600 text-xs uppercase font-bold">Gelombang & Promo</span>
+                            <div class="text-gray-800 font-semibold">
+                                {{ $siswa->gelombang->nama_gelombang }}
+                            </div>
+                            <div class="text-sm mt-1">
+                                @if($siswa->promo)
+                                    <span class="text-red-600 font-bold">🔥 {{ $siswa->promo->nama_promo }}</span>
+                                    <span class="text-gray-500 text-xs block">(Potongan: Rp {{ number_format($siswa->promo->potongan, 0, ',', '.') }})</span>
+                                @else
+                                    <span class="text-gray-400 italic">- Tidak ada promo -</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
+                    Data Penanggung Jawab
+                </div>
+                <div class="p-6 space-y-6">
+                    @foreach($siswa->penanggungJawab as $pj)
+                        <div class="border rounded-lg p-4 relative hover:bg-gray-50 transition">
+                            <span class="absolute top-0 right-0 bg-gray-200 text-gray-600 text-xs font-bold px-2 py-1 rounded-bl-lg uppercase">
+                                {{ $pj->hubungan }}
+                            </span>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                                <div><span class="text-xs text-gray-500 block">Nama Lengkap</span> <span class="font-bold">{{ $pj->nama_lengkap }}</span></div>
+                                <div><span class="text-xs text-gray-500 block">NIK</span> <span class="font-semibold">{{ $pj->nik ?? '-' }}</span></div>
+                                <div><span class="text-xs text-gray-500 block">Tahun Lahir</span> <span class="font-semibold">{{ $pj->tahun_lahir ?? '-' }}</span></div>
+                                <div><span class="text-xs text-gray-500 block">Pendidikan</span> <span class="font-semibold">{{ $pj->pendidikan_terakhir ?? '-' }}</span></div>
+                                <div><span class="text-xs text-gray-500 block">Pekerjaan</span> <span class="font-semibold">{{ $pj->pekerjaan ?? '-' }}</span></div>
+                                <div><span class="text-xs text-gray-500 block">Penghasilan</span> <span class="font-semibold text-green-700">{{ $pj->penghasilan_bulanan ? 'Rp ' . number_format($pj->penghasilan_bulanan, 0, ',', '.') : '-' }}</span></div>
+                                <div><span class="text-xs text-gray-500 block">No. HP</span> <span class="font-semibold">{{ $pj->no_hp ?? '-' }}</span></div>
+                                @if($pj->hubungan == 'Wali')
+                                    <div class="md:col-span-2"><span class="text-xs text-gray-500 block">Alamat Wali</span> <span class="font-semibold">{{ $pj->alamat_wali ?? '-' }}</span></div>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
         </div>
-    @endif
-    <h3>Data Akun</h3>
-    <table border="1" style="width: 100%; border-collapse: collapse;" cellpadding="5">
-        <tr> <td style="width: 20%;">Email Akun</td> <td>{{ $siswa->user->email }}</td> </tr>
-        <tr> <td>Nama Akun</td> <td>{{ $siswa->user->name }}</td> </tr>
-    </table>
 
-    <h3>Data Pribadi Siswa</h3>
-    <table border="1" style="width: 100%; border-collapse: collapse;" cellpadding="5">
-        <tr> <td style="width: 20%;">NISN</td> <td>{{ $siswa->nisn }}</td> </tr>
-        <tr> <td>NIK</td> <td>{{ $siswa->nik }}</td> </tr>
-        <tr> <td>Jenis Kelamin</td> <td>{{ $siswa->jenis_kelamin }}</td> </tr>
-        <tr> <td>Tempat Lahir</td> <td>{{ $siswa->tempat_lahir }}</td> </tr>
-        <tr> <td>Tanggal Lahir</td> <td>{{ $siswa->tanggal_lahir->format('d F Y') }}</td> </tr>
-        <tr> <td>Agama</td> <td>{{ $siswa->agama }}</td> </tr>
-        <tr> <td>Asal Sekolah</td> <td>{{ $siswa->asal_sekolah }}</td> </tr>
-        <tr> <td>No. HP</td> <td>{{ $siswa->no_hp }}</td> </tr>
-    </table>
+        <div class="space-y-6">
+            
+            @if ($siswa->status_pendaftaran == 'Terdaftar')
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden border-2 border-blue-500 sticky top-6">
+                    <div class="px-6 py-4 bg-blue-600 text-white font-bold text-lg text-center">
+                        Panel Aksi Admin
+                    </div>
+                    <div class="p-6">
+                        <p class="text-sm text-gray-600 mb-4 text-center">Cek seluruh data di samping. Pilih aksi:</p>
+                        
+                        <form action="{{ route('admin.verifikasi.updateStatus', $siswa->id) }}" method="POST" class="mb-6">
+                            @csrf
+                            <input type="hidden" name="aksi" value="terima">
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded shadow transition flex justify-center items-center" onclick="return confirm('Yakin ingin MENERIMA siswa ini secara RESMI?')">
+                                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                ✔ TERIMA SISWA (RESMI)
+                            </button>
+                        </form>
 
-    <h3>Pilihan Pendaftaran</h3>
-    <table border="1" style="width: 100%; border-collapse: collapse;" cellpadding="5">
-        <tr> <td style="width: 20%;">Pilihan Jurusan</td> <td>{{ $siswa->jurusan->nama_jurusan }}</td> </tr>
-        <tr> <td>Tipe Kelas</td> <td>{{ $siswa->tipeKelas->nama_tipe_kelas }}</td> </tr>
-    </table>
+                        <div class="relative flex py-3 items-center">
+                            <div class="flex-grow border-t border-gray-300"></div>
+                            <span class="flex-shrink-0 mx-4 text-gray-400 text-xs">ATAU</span>
+                            <div class="flex-grow border-t border-gray-300"></div>
+                        </div>
 
-    <h3>Data Penanggung Jawab (Orang Tua / Wali)</h3>
-    <table border="1" style="width: 100%; border-collapse: collapse;" cellpadding="5">
-        <thead>
-            <tr style="background: #f9f9f9;">
-                <th style="width: 20%;">Hubungan</th>
-                <th>Nama Lengkap</th>
-                <th>NIK</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($siswa->penanggungJawab as $pj)
-                <tr>
-                    <td>{{ $pj->hubungan }}</td>
-                    <td>{{ $pj->nama_lengkap }}</td>
-                    <td>{{ $pj->nik ?? '-' }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+                        <form action="{{ route('admin.verifikasi.updateStatus', $siswa->id) }}" method="POST">
+                            @csrf
+                            
+                            <label class="block text-xs font-bold text-gray-700 mb-2">Catatan / Alasan (Wajib diisi):</label>
+                            <textarea name="catatan_admin" rows="3" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm mb-4" placeholder="Contoh: Foto Ijazah buram, mohon upload ulang..." required></textarea>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="submit" name="aksi" value="revisi" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-2 rounded text-sm flex justify-center items-center" onclick="return confirm('Minta siswa memperbaiki data?')">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                    Minta Revisi
+                                </button>
 
-    <h3>Data Dokumen Terupload</h3>
-    <table border="1" style="width: 100%; border-collapse: collapse;" cellpadding="5">
-        <thead>
-            <tr style="background: #f9f9f9;">
-                <th>Jenis Dokumen</th>
-                <th>File</th>
-                <th>Status</th>
-                <th>Aksi Admin</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse ($siswa->dokumen as $dokumen)
-                <tr>
-                    <td>{{ $dokumen->tipe_dokumen }}</td>
-                    <td>
-                        <a href="{{ Storage::disk('public')->url($dokumen->file_path) }}" target="_blank">
-                            Lihat File ({{ $dokumen->nama_asli_file }})
-                        </a>
-                    </td>
-                    <td>{{ $dokumen->status_verifikasi }}</td>
-                    <td>
-                        (Tombol Verifikasi/Tolak Dokumen belum dibuat)
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="4" style="text-align: center;">Siswa belum mengunggah dokumen apapun.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+                                <button type="submit" name="aksi" value="tolak" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-2 rounded text-sm flex justify-center items-center" onclick="return confirm('Yakin MENOLAK siswa ini secara PERMANEN?')">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    Tolak
+                                </button>
+                            </div>
+                        </form>
 
-    <h3>Data Riwayat Pembayaran</h3>
-    @if ($siswa->rencanaPembayaran)
-        <table border="1" style="width: 100%; border-collapse: collapse;" cellpadding="5">
-            <thead>
-                <tr style="background: #f9f9f9;">
-                    <th>Tgl Bayar</th>
-                    <th>Jumlah (Rp)</th>
-                    <th>Bukti</th>
-                    <th>Status</th>
-                    <th>Aksi Admin</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($siswa->rencanaPembayaran->pembayaran as $pembayaran)
-                    <tr>
-                        <td>{{ $pembayaran->tanggal_pembayaran->format('d F Y H:i') }}</td>
-                        <td>{{ number_format($pembayaran->jumlah, 0, ',', '.') }}</td>
-                        <td>
-                            @if ($pembayaran->buktiPembayaran)
-                                <a href="{{ Storage::disk('public')->url($pembayaran->buktiPembayaran->file_path) }}" target="_blank">
-                                    Lihat Bukti
-                                </a>
-                            @else
-                                -
-                            @endif
-                        </td>
-                        <td>{{ $pembayaran->status }}</td>
-                        <td>
-                            (Tombol Verifikasi/Tolak Pembayaran belum dibuat)
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" style="text-align: center;">Siswa belum mengunggah bukti pembayaran.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    @else
-        <p>Siswa belum sampai pada tahap pembayaran.</p>
-    @endif
-</body>
-</html>
+                    </div>
+                </div>
+            @endif
+
+            <div class="bg-white shadow rounded-lg overflow-hidden mt-6">
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
+                    Dokumen Siswa
+                </div>
+                <div class="divide-y divide-gray-100">
+                    @forelse($siswa->dokumen as $dokumen)
+                        <div class="p-4 flex items-center justify-between hover:bg-gray-50">
+                            <div class="truncate pr-2">
+                                <span class="block text-sm font-medium text-gray-900">{{ $dokumen->tipe_dokumen }}</span>
+                                <span class="block text-xs text-gray-500 truncate">{{ $dokumen->nama_asli_file }}</span>
+                            </div>
+                            <a href="{{ Storage::disk('public')->url($dokumen->file_path) }}" target="_blank" class="flex-shrink-0 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold hover:bg-blue-200">
+                                Lihat
+                            </a>
+                        </div>
+                    @empty
+                        <div class="p-4 text-center text-sm text-gray-500">Tidak ada dokumen.</div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
+                    Bukti Pembayaran
+                </div>
+                <div class="divide-y divide-gray-100">
+                    @if($siswa->rencanaPembayaran)
+                        @forelse($siswa->rencanaPembayaran->pembayaran as $bayar)
+                            <div class="p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm font-bold text-gray-900">Rp {{ number_format($bayar->jumlah, 0, ',', '.') }}</span>
+                                    <span class="text-xs text-gray-500">{{ $bayar->tanggal_pembayaran->format('d/m/Y') }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800">{{ $bayar->status }}</span>
+                                    @if($bayar->buktiPembayaran)
+                                        <a href="{{ Storage::disk('public')->url($bayar->buktiPembayaran->file_path) }}" target="_blank" class="text-xs text-blue-600 hover:underline">Lihat Bukti</a>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                             <div class="p-4 text-center text-sm text-gray-500">Belum ada upload bayar.</div>
+                        @endforelse
+                    @else
+                        <div class="p-4 text-center text-sm text-gray-500">Belum ada tagihan.</div>
+                    @endif
+                </div>
+            </div>
+
+        </div>
+    </div>
+@endsection

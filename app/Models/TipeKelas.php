@@ -18,7 +18,7 @@ class TipeKelas extends Model
      */
     public function jurusanTipeKelas(): HasMany
     {
-        return $this->hasMany(JurusanTipeKelas::class, 'id_tipe_kelas');
+        return $this->hasMany(JurusanTipeKelas::class, 'tipe_kelas_id');
     }
 
     /**

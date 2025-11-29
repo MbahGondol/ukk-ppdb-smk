@@ -36,6 +36,6 @@ class BiayaPerJurusanTipeKelas extends Model
      */
     public function rencanaPembayaran(): HasMany
     {
-        return $this->hasMany(RencanaPembayaran::class, 'id_biaya');
+        return $this->hasMany(RencanaPembayaran::class, 'biaya_per_jurusan_tipe_kelas_id');
     }
 }

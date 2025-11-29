@@ -40,7 +40,9 @@ class VerifikasiController extends Controller
                             'tipeKelas', 
                             'penanggungJawab', 
                             'dokumen', 
-                            'rencanaPembayaran.pembayaran.buktiPembayaran' 
+                            'rencanaPembayaran.pembayaran.buktiPembayaran',
+                            'gelombang', 
+                            'promo'
                         ])
                         ->findOrFail($id);
         
@@ -52,40 +54,68 @@ class VerifikasiController extends Controller
 
     /**
      * Memproses aksi (verifikasi / tolak) dari Admin.
-     * (LOGIKA "UPDATE" - STATUS)
      */
     public function updateStatus(Request $request, string $id)
     {
-        // ... (di dalam updateStatus)
-        // 1. Validasi input dari admin
+        // 1. Validasi input
         $request->validate([
-            'aksi' => 'required|in:terima,tolak',
-            // 'required_if' artinya: 'catatan_admin' WAJIB diisi JIKA 'aksi' == 'tolak'
-            'catatan_admin' => 'required_if:aksi,tolak|nullable|string|max:1000'
+            'aksi' => 'required|in:terima,tolak,revisi',
+            'catatan_admin' => 'required_if:aksi,tolak,revisi|nullable|string|max:1000'
         ]);
 
         $siswa = CalonSiswa::findOrFail($id);
 
+        // 2. Logika TERIMA (Lulus & Validasi Semua Berkas)
         if ($request->aksi == 'terima') {
-            // 2. Jika diterima (Verifikasi Awal)
+            
+            // A. Ubah Status Siswa
             $siswa->update([
-                'status_pendaftaran' => 'Proses Verifikasi',
-                'catatan_admin' => null // Kosongkan catatan jika dia diterima
+                'status_pendaftaran' => 'Resmi Diterima',
+                'catatan_admin' => null
             ]);
+
+            // B. Ubah Semua Status DOKUMEN menjadi 'Valid'
+            // (Kita pakai update() massal query builder agar cepat)
+            $siswa->dokumen()->update([
+                'status_verifikasi' => 'Valid'
+            ]);
+
+            // C. Ubah Semua Status PEMBAYARAN menjadi 'Verified'
+            if ($siswa->rencanaPembayaran) {
+                $siswa->rencanaPembayaran->pembayaran()->update([
+                    'status' => 'Verified'
+                ]);
+            }
             
             return redirect()->route('admin.verifikasi.index')
-                            ->with('success', 'Siswa ' . $siswa->nama_lengkap . ' berhasil diverifikasi.');
+                             ->with('success', 'Selamat! Siswa ' . $siswa->nama_lengkap . ' telah RESMI DITERIMA dan seluruh berkas divalidasi.');
+        } 
+        
+        // 3. Logika REVISI (Kembalikan ke Siswa)
+        elseif ($request->aksi == 'revisi') {
+            $siswa->update([
+                'status_pendaftaran' => 'Melengkapi Berkas',
+                'catatan_admin' => $request->catatan_admin
+            ]);
 
-        } elseif ($request->aksi == 'tolak') {
-            // 3. Jika ditolak
+            // Opsional: Kita bisa set dokumen jadi 'Invalid' jika mau, 
+            // tapi membiarkannya 'Pending' juga tidak masalah agar siswa bisa hapus/ganti.
+
+            return redirect()->route('admin.verifikasi.index')
+                             ->with('warning', 'Status dikembalikan ke "Melengkapi Berkas". Siswa diminta memperbaiki data.');
+        }
+
+        // 4. Logika TOLAK (Gagal Permanen)
+        elseif ($request->aksi == 'tolak') {
             $siswa->update([
                 'status_pendaftaran' => 'Ditolak',
-                'catatan_admin' => $request->catatan_admin // <-- SIMPAN CATATANNYA
+                'catatan_admin' => $request->catatan_admin
             ]);
 
             return redirect()->route('admin.verifikasi.index')
-                            ->with('success', 'Siswa ' . $siswa->nama_lengkap . ' berhasil ditolak.');
+                             ->with('error', 'Siswa ' . $siswa->nama_lengkap . ' telah DITOLAK.');
         }
         
+        return redirect()->route('admin.verifikasi.index');
     }
 }
