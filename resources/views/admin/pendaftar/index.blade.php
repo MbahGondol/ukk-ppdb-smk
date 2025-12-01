@@ -5,24 +5,48 @@
 
 @section('content')
     <div class="mb-6">
-        <p class="text-gray-600 mb-4">Arsip lengkap seluruh data pendaftar. Gunakan filter untuk menyortir.</p>
+        <p class="text-gray-600 mb-4">Arsip lengkap seluruh data pendaftar. Angka menunjukkan jumlah siswa.</p>
         
         <div class="flex space-x-2 border-b border-gray-200 pb-1 overflow-x-auto">
+            
             <a href="{{ route('admin.pendaftar.index') }}" 
-               class="px-4 py-2 rounded-t-lg font-medium text-sm transition {{ !$status_sekarang ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100' }}">
+               class="flex items-center px-4 py-2 rounded-t-lg font-medium text-sm transition {{ !$status_sekarang ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100' }}">
                Semua
+               <span class="ml-2 text-xs font-bold px-2 py-0.5 rounded-full {{ !$status_sekarang ? 'bg-white text-blue-600' : 'bg-gray-200 text-gray-600' }}">
+                   {{ $counts['semua'] }}
+               </span>
             </a>
+
+            <a href="{{ route('admin.pendaftar.index', ['status' => 'Melengkapi Berkas']) }}" 
+               class="flex items-center px-4 py-2 rounded-t-lg font-medium text-sm transition {{ $status_sekarang == 'Melengkapi Berkas' ? 'bg-gray-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-100' }}">
+               Belum Selesai
+               <span class="ml-2 text-xs font-bold px-2 py-0.5 rounded-full {{ $status_sekarang == 'Melengkapi Berkas' ? 'bg-white text-gray-500' : 'bg-gray-200 text-gray-600' }}">
+                   {{ $counts['draft'] }}
+               </span>
+            </a>
+
             <a href="{{ route('admin.pendaftar.index', ['status' => 'Terdaftar']) }}" 
-               class="px-4 py-2 rounded-t-lg font-medium text-sm transition {{ $status_sekarang == 'Terdaftar' ? 'bg-yellow-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-100' }}">
+               class="flex items-center px-4 py-2 rounded-t-lg font-medium text-sm transition {{ $status_sekarang == 'Terdaftar' ? 'bg-yellow-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-100' }}">
                Inbox Verifikasi
+               <span class="ml-2 text-xs font-bold px-2 py-0.5 rounded-full {{ $status_sekarang == 'Terdaftar' ? 'bg-white text-yellow-600' : 'bg-yellow-100 text-yellow-800' }}">
+                   {{ $counts['terdaftar'] }}
+               </span>
             </a>
+
             <a href="{{ route('admin.pendaftar.index', ['status' => 'Resmi Diterima']) }}" 
-               class="px-4 py-2 rounded-t-lg font-medium text-sm transition {{ $status_sekarang == 'Resmi Diterima' ? 'bg-green-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100' }}">
+               class="flex items-center px-4 py-2 rounded-t-lg font-medium text-sm transition {{ $status_sekarang == 'Resmi Diterima' ? 'bg-green-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100' }}">
                Diterima
+               <span class="ml-2 text-xs font-bold px-2 py-0.5 rounded-full {{ $status_sekarang == 'Resmi Diterima' ? 'bg-white text-green-600' : 'bg-green-100 text-green-800' }}">
+                   {{ $counts['diterima'] }}
+               </span>
             </a>
+
             <a href="{{ route('admin.pendaftar.index', ['status' => 'Ditolak']) }}" 
-               class="px-4 py-2 rounded-t-lg font-medium text-sm transition {{ $status_sekarang == 'Ditolak' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100' }}">
+               class="flex items-center px-4 py-2 rounded-t-lg font-medium text-sm transition {{ $status_sekarang == 'Ditolak' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100' }}">
                Ditolak
+               <span class="ml-2 text-xs font-bold px-2 py-0.5 rounded-full {{ $status_sekarang == 'Ditolak' ? 'bg-white text-red-600' : 'bg-red-100 text-red-800' }}">
+                   {{ $counts['ditolak'] }}
+               </span>
             </a>
         </div>
     </div>
@@ -34,7 +58,6 @@
                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">No. Daftar</th>
                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Nama Siswa</th>
                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Jurusan</th>
-                    
                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Gelombang</th>
                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Tgl Submit</th>
                     <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Status</th>
@@ -53,7 +76,6 @@
                             {{ $siswa->jurusan->kode_jurusan }}
                             <span class="text-xs text-gray-500">({{ $siswa->tipeKelas->nama_tipe_kelas }})</span>
                         </td>
-
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
                                 {{ $siswa->gelombang->nama_gelombang }}

@@ -12,29 +12,36 @@ class PendaftarController extends Controller
      * Menampilkan daftar semua pendaftar (dengan filter).
      * (LOGIKA "READ")
      */
-    public function index(Request $request) 
+    public function index(Request $request)
     {
-        // 1. Ambil data status yang diminta dari URL (jika ada)
-        // Contoh: /admin/pendaftar?status=Ditolak
+        // 1. Ambil filter dari URL
         $status_filter = $request->query('status');
 
-        // 2. Mulai bangun query. Ambil relasi yang kita butuhkan.
+        // 2. Query Data Utama (Untuk Tabel)
         $query = CalonSiswa::with(['user', 'jurusan', 'tipeKelas', 'gelombang']);
 
-        // 3. LOGIKA FILTER: Jika ada filter 'status' di URL...
         if ($status_filter) {
-            // ...maka tambahkan 'where' ke query
             $query->where('status_pendaftaran', $status_filter);
         }
         
-        // 4. Jika tidak ada filter, query akan mengambil SEMUA data.
-        // Urutkan dari yang paling baru mendaftar.
         $data_siswa = $query->orderBy('tanggal_submit', 'desc')->get();
 
-        // 5. Tampilkan View, kirim data $data_siswa dan $status_filter
+        // 3. HITUNG JUMLAH (COUNTING) - INI BAGIAN BARUNYA
+        // Kita hitung terpisah agar angka di Tab selalu muncul, 
+        // tidak peduli filter apa yang sedang aktif.
+        $counts = [
+            'semua' => CalonSiswa::count(),
+            'draft' => CalonSiswa::where('status_pendaftaran', 'Melengkapi Berkas')->count(),
+            'terdaftar' => CalonSiswa::where('status_pendaftaran', 'Terdaftar')->count(),
+            'diterima' => CalonSiswa::where('status_pendaftaran', 'Resmi Diterima')->count(),
+            'ditolak' => CalonSiswa::where('status_pendaftaran', 'Ditolak')->count(),
+        ];
+
+        // 4. Kirim data dan hitungan ke View
         return view('admin.pendaftar.index', [
             'data_siswa' => $data_siswa,
-            'status_sekarang' => $status_filter // Untuk menandai link mana yang aktif
+            'status_sekarang' => $status_filter,
+            'counts' => $counts
         ]);
     }
 }

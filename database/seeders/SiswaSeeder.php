@@ -38,7 +38,7 @@ class SiswaSeeder extends Seeder
 
             // 2. Tentukan Status secara Acak
             // Kita buat probabilitas agar datanya variatif
-            $statuses = ['Melengkapi Berkas', 'Terdaftar', 'Proses Verifikasi', 'Ditolak', 'Resmi Diterima'];
+            $statuses = ['Melengkapi Berkas', 'Terdaftar', 'Ditolak', 'Resmi Diterima'];
             $status = $statuses[array_rand($statuses)];
 
             // 3. Buat User
