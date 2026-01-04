@@ -64,10 +64,27 @@
                                     </p>
                                 </div>
                                 
-                                <a href="{{ route('siswa.biodata') }}" class="text-sm bg-white border border-blue-300 text-blue-600 hover:bg-blue-50 font-semibold py-2 px-4 rounded shadow-sm flex items-center">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                    Lihat Biodata Saya
-                                </a>
+                                <div class="flex space-x-2">
+                                    @if ($calonSiswa->status_pendaftaran == 'Melengkapi Berkas')
+                                        <a href="{{ route('siswa.pendaftaran.create') }}" class="text-sm bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded shadow-sm flex items-center transition">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                            Edit Biodata
+                                        </a>
+                                    @endif
+
+                                    <a href="{{ route('siswa.biodata') }}" class="text-sm bg-white border border-blue-300 text-blue-600 hover:bg-blue-50 font-semibold py-2 px-4 rounded shadow-sm flex items-center transition">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        Lihat Biodata Saya
+                                    </a>
+
+                                    @if ($calonSiswa->status_pendaftaran == 'Resmi Diterima')
+                                        <a href="{{ route('siswa.cetak.bukti') }}" target="_blank" class="text-sm bg-gray-800 text-white hover:bg-gray-700 font-semibold py-2 px-4 rounded shadow-sm flex items-center transition">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                            Cetak
+                                        </a>
+                                    @endif
+
+                                </div>
                             </div>
 
                             @if($calonSiswa->catatan_admin)
@@ -79,7 +96,41 @@
                     </div>
                 </div>
                 
-                @if ($calonSiswa->status_pendaftaran == 'Melengkapi Berkas' || $calonSiswa->status_pendaftaran == 'Terdaftar' || $calonSiswa->status_pendaftaran == 'Proses Verifikasi')
+                @php
+                    // Cek apakah siswa masih punya tanggungan pembayaran (Belum Lunas)
+                    // Menggunakan optional() jaga-jaga jika rencanaPembayaran belum dibuat
+                    $masihPunyaHutang = optional($calonSiswa->rencanaPembayaran)->status == 'Belum Lunas';
+                    
+                    // Cek apakah statusnya masih proses pendaftaran
+                    $sedangProses = in_array($calonSiswa->status_pendaftaran, ['Melengkapi Berkas', 'Terdaftar', 'Proses Verifikasi']);
+                    
+                    // Tampilkan tombol jika: Sedang Proses ATAU (Sudah Diterima TAPI Masih Hutang)
+                    $tampilkanTombol = $sedangProses || ($calonSiswa->status_pendaftaran == 'Resmi Diterima' && $masihPunyaHutang);
+                @endphp
+
+                @if ($tampilkanTombol)
+                    
+                    @if ($calonSiswa->status_pendaftaran == 'Resmi Diterima' && $masihPunyaHutang)
+                        <div class="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded shadow-sm">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm font-bold">
+                                        Perhatian: Administrasi Belum Lunas
+                                    </p>
+                                    <p class="text-sm mt-1">
+                                        Meskipun Anda sudah diterima, Anda masih memiliki sisa tagihan. 
+                                        Silakan akses menu pembayaran di bawah untuk melunasi atau mengupload bukti cicilan selanjutnya.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <a href="{{ route('siswa.dokumen.index') }}" class="block p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 transition">
                             <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900">1. Upload Dokumen</h5>

@@ -78,6 +78,9 @@ Route::controller(AuthController::class)->group(function () {
             // 3. Aksi untuk mengubah status
             Route::post('verifikasi/update-status/{id}', [VerifikasiController::class, 'updateStatus'])->name('verifikasi.updateStatus');
 
+            // Rute khusus untuk memverifikasi satu item pembayaran (Cicilan)
+            Route::post('pembayaran/verifikasi/{id}', [VerifikasiController::class, 'verifikasiPembayaran'])->name('verifikasi.pembayaran');
+
             // Rute untuk Laporan / Manajemen Semua Pendaftar
             Route::get('pendaftar', [PendaftarController::class, 'index'])->name('pendaftar.index');
             

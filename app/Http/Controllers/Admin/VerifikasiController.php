@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\CalonSiswa;
+use App\Models\PembayaranSiswa;
 
 class VerifikasiController extends Controller
 {
@@ -117,5 +118,44 @@ class VerifikasiController extends Controller
         }
         
         return redirect()->route('admin.verifikasi.index');
+    }
+
+    public function verifikasiPembayaran(Request $request, string $id)
+    {
+        $request->validate([
+            'aksi' => 'required|in:terima,tolak',
+        ]);
+
+        $pembayaran = PembayaranSiswa::findOrFail($id);
+        
+        // 1. Update Status Pembayaran Ini
+        if ($request->aksi == 'terima') {
+            $pembayaran->update(['status' => 'Verified']);
+        } else {
+            $pembayaran->update(['status' => 'Failed']);
+        }
+
+        // 2. LOGIKA HITUNG ULANG (RE-CALCULATE)
+        // Setiap kali admin memverifikasi struk, kita hitung ulang total yang sudah dibayar
+        $rencana = $pembayaran->rencanaPembayaran;
+        
+        // Hitung jumlah semua pembayaran yang statusnya 'Verified'
+        $total_terbayar = $rencana->pembayaran()
+                                 ->where('status', 'Verified')
+                                 ->sum('jumlah');
+
+        // Update Rencana Pembayaran Induk
+        $rencana->total_sudah_dibayar = $total_terbayar;
+
+        // Cek apakah sudah Lunas?
+        if ($total_terbayar >= $rencana->total_nominal_biaya) {
+            $rencana->status = 'Lunas';
+        } else {
+            $rencana->status = 'Belum Lunas';
+        }
+        
+        $rencana->save();
+
+        return back()->with('success', 'Status pembayaran berhasil diperbarui.');
     }
 }
