@@ -46,6 +46,8 @@ Route::controller(AuthController::class)->group(function () {
 
         Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
 
+        Route::get('/dokumen/lihat/{id}', [App\Http\Controllers\Siswa\DokumenController::class, 'show'])->name('dokumen.show');
+
         // ========================
         // --- GRUP KHUSUS ADMIN ---
         // ========================

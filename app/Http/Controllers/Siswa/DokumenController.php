@@ -5,35 +5,28 @@ namespace App\Http\Controllers\Siswa;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\DokumenSiswa;
-use App\Models\CalonSiswa;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage; 
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str; 
 
 class DokumenController extends Controller
 {
     /**
      * Menampilkan halaman upload dokumen.
-     * (LOGIKA "READ" - DAFTAR DOKUMEN)
      */
     public function index()
     {
-        // 1. Dapatkan data siswa yang sedang login
         $siswa = Auth::user()->calonSiswa;
 
-        // 2. Jika siswa belum mendaftar, lempar dia
         if (!$siswa) {
             return redirect()->route('siswa.dashboard')->with('error', 'Anda harus mengisi formulir pendaftaran terlebih dahulu.');
         }
 
-        // 3. Ambil daftar dokumen yang sudah di-upload oleh siswa ini
-        // Kita gunakan relasi 'dokumen' yang sudah kita buat di Model CalonSiswa
-        // (Di Migrasi Anda sepertinya nama relasinya 'dokumen', pastikan di Model CalonSiswa juga 'dokumen')
         $dokumen_terupload = $siswa->dokumen()->get(); 
 
-        // 4. Definisikan dokumen apa saja yang WAJIB (sesuai formulir offline Anda)
         $dokumen_wajib = [
             'Akte Kelahiran',
-            'Ijazah SMP', // Meng-cover Ijazah SD dan SKL SMP
+            'Ijazah SMP',
             'Kartu Keluarga',
             'KTP Ayah',
             'KTP Ibu',
@@ -41,7 +34,6 @@ class DokumenController extends Controller
             'Foto Formal' 
         ];
 
-        // 5. Tampilkan View, kirim data $dokumen_wajib dan $dokumen_terupload
         return view('siswa.dokumen', [
             'dokumen_wajib' => $dokumen_wajib,
             'dokumen_terupload' => $dokumen_terupload,
@@ -50,21 +42,21 @@ class DokumenController extends Controller
 
     /**
      * Menyimpan file dokumen yang di-upload.
-     * (LOGIKA "CREATE" - UPLOAD)
      */
     public function store(Request $request)
     {
         // 1. Validasi
         $request->validate([
             'tipe_dokumen' => 'required|string',
-            'file_dokumen' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048', // Maks 2MB
+            // Gunakan validasi MIME yang ketat
+            'file_dokumen' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048', 
         ]);
 
         $siswa = Auth::user()->calonSiswa;
         $file = $request->file('file_dokumen');
         $tipe_dokumen = $request->tipe_dokumen;
 
-        // 2. Cek apakah siswa sudah upload dokumen jenis ini?
+        // 2. Cek Duplikat
         $cek_duplikat = DokumenSiswa::where('calon_siswa_id', $siswa->id)
                                     ->where('tipe_dokumen', $tipe_dokumen)
                                     ->first();
@@ -72,51 +64,76 @@ class DokumenController extends Controller
             return back()->with('error', 'Anda sudah mengunggah dokumen ' . $tipe_dokumen . '. Hapus dulu jika ingin mengganti.');
         }
 
-        // 3. Buat nama file yang unik
-        // Format: [id_siswa]_[tipe_dokumen_snake_case].[ekstensi]
-        // Contoh: 1_akte_kelahiran.pdf
-        $nama_file_unik = $siswa->id . '_' . str_replace(' ', '_', strtolower($tipe_dokumen)) . '.' . $file->getClientOriginalExtension();
+        // 3. SECURITY: Generate Nama File Acak (Anti-Tebak)
+        $ext = $file->getClientOriginalExtension();
+        $nama_file_acak = Str::uuid() . '.' . $ext;
 
-        // 4. Simpan file ke "Gudang"
-        $path = $file->storeAs('dokumen_siswa', $nama_file_unik, 'public');
+        // 4. SECURITY: Simpan di folder PRIVATE ('local'), bukan 'public'
+        // Folder 'dokumen_rahasia' tidak akan bisa diakses via browser langsung.
+        $path = $file->storeAs('dokumen_rahasia', $nama_file_acak, 'local');
 
-        // 5. Simpan path-nya ke Database
+        // 5. Simpan ke Database
         DokumenSiswa::create([
             'calon_siswa_id' => $siswa->id,
             'tipe_dokumen' => $tipe_dokumen,
-            'file_path' => $path, // Path lengkap di storage
+            'file_path' => $path, // Path di storage private
             'nama_asli_file' => $file->getClientOriginalName(),
-            'status_verifikasi' => 'Pending', // Status awal
+            'status_verifikasi' => 'Pending',
         ]);
 
         return back()->with('success', 'Dokumen ' . $tipe_dokumen . ' berhasil diunggah.');
     }
 
     /**
+     * SECURITY: Method khusus untuk melihat file private
+     */
+    public function show($id)
+    {
+        $dokumen = DokumenSiswa::findOrFail($id);
+        $user = Auth::user();
+
+        // 1. Cek Hak Akses (Authorization)
+        if ($user->hasRole('siswa') && $dokumen->calon_siswa_id != $user->calonSiswa->id) {
+            abort(403, 'Anda tidak berhak melihat dokumen ini.');
+        }
+
+        // 2. Cek apakah file fisik ada di storage local
+        if (!Storage::disk('local')->exists($dokumen->file_path)) {
+            abort(404, 'File tidak ditemukan di server.');
+        }
+
+        // 3. Ambil Full Path (Lokasi asli di harddisk server)
+        // Storage::path() mengubah 'dokumen_rahasia/xxx.jpg' menjadi 'C:\Projects\...\storage\app\private\...'
+        $path = Storage::disk('local')->path($dokumen->file_path);
+
+        // 4. Return file agar bisa tampil di browser (Inline View)
+        return response()->file($path);
+    }
+
+    /**
      * Menghapus file dokumen.
-     * (LOGIKA "DELETE")
      */
     public function destroy(string $id)
     {
         $dokumen = DokumenSiswa::findOrFail($id);
         $siswa = Auth::user()->calonSiswa;
 
-        // 1. Keamanan: Pastikan yang menghapus adalah pemilik dokumen
+        // 1. Validasi Pemilik
         if ($dokumen->calon_siswa_id != $siswa->id) {
             return back()->with('error', 'Anda tidak punya izin.');
         }
 
-        // 2. Keamanan: Jangan biarkan siswa menghapus dokumen yang sudah "Valid"
+        // 2. Validasi Status
         if ($dokumen->status_verifikasi == 'Valid') {
             return back()->with('error', 'Tidak bisa menghapus dokumen yang sudah divalidasi oleh Admin.');
         }
 
-        // 3. Hapus file dari "Gudang" (Storage)
-        Storage::disk('public')->delete($dokumen->file_path);
+        // 3. Hapus file dari Disk 'local'
+        Storage::disk('local')->delete($dokumen->file_path);
 
         // 4. Hapus data dari Database
         $dokumen->delete();
 
-        return back()->with('success', 'Dokumen ' . $dokumen->tipe_dokumen . ' berhasil dihapus.');
+        return back()->with('success', 'Dokumen berhasil dihapus.');
     }
 }
