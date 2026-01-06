@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Siswa;
 
+use App\Enums\StatusPendaftaran;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\JurusanTipeKelas;
@@ -17,6 +18,45 @@ use App\Http\Requests\Siswa\StorePendaftaranRequest;
 
 class PendaftaranController extends Controller
 {
+
+    /**
+     * Menampilkan daftar pendaftar (ADMIN VIEW)
+     */
+    public function index(Request $request)
+    {
+        // 1. Ambil filter dari URL
+        $status_filter = $request->query('status');
+
+        // 2. Query Data Utama (Untuk Tabel)
+        $query = CalonSiswa::with(['user', 'jurusan', 'tipeKelas', 'gelombang']);
+
+        if ($status_filter) {
+            $query->where('status_pendaftaran', $status_filter);
+        }
+        
+        $data_siswa = $query->orderBy('tanggal_submit', 'desc')->get();
+
+        // 3. OPTIMASI COUNTING (Hanya 1 Query ke DB)
+        // Kita gunakan Enum value di dalam query selectRaw agar konsisten
+        $counts = CalonSiswa::toBase()
+            ->selectRaw("count(*) as semua")
+            ->selectRaw("count(case when status_pendaftaran = ? then 1 end) as draft", [StatusPendaftaran::MELENGKAPI_BERKAS->value])
+            ->selectRaw("count(case when status_pendaftaran = ? then 1 end) as terdaftar", [StatusPendaftaran::TERDAFTAR->value])
+            ->selectRaw("count(case when status_pendaftaran = ? then 1 end) as diterima", [StatusPendaftaran::DITERIMA->value])
+            ->selectRaw("count(case when status_pendaftaran = ? then 1 end) as ditolak", [StatusPendaftaran::DITOLAK->value])
+            ->first();
+
+        // Konversi object ke array agar view tidak error (karena view mengharapkan array)
+        $counts = (array) $counts;
+
+        // 4. Kirim data dan hitungan ke View
+        return view('admin.pendaftar.index', [
+            'data_siswa' => $data_siswa,
+            'status_sekarang' => $status_filter,
+            'counts' => $counts
+        ]);
+    }
+
     /**
      * Menampilkan form pendaftaran (CREATE - Form)
      */
@@ -25,14 +65,17 @@ class PendaftaranController extends Controller
         $user = Auth::user();
         $calonSiswa = $user->calonSiswa;
 
-        // LOGIKA EDIT: Jika sudah daftar & bukan 'Melengkapi Berkas', lempar ke dashboard
-        if ($calonSiswa && $calonSiswa->status_pendaftaran != 'Melengkapi Berkas') {
+        // Jika sudah submit dan status bukan 'Melengkapi Berkas', redirect ke dashboard
+        if ($calonSiswa && $calonSiswa->status_pendaftaran != StatusPendaftaran::MELENGKAPI_BERKAS->value) {
             return redirect()->route('siswa.dashboard');
         }
 
         $data_jurusan_tipe_kelas = JurusanTipeKelas::with(['jurusan', 'tipeKelas']) ->withCount(['calonSiswa as jumlah_pendaftar' => function ($query) {
             // Filter penghitungan langsung di level database
-            $query->whereNotIn('status_pendaftaran', ['Ditolak', 'Draft']);
+            $query->whereNotIn('status_pendaftaran', [
+            StatusPendaftaran::DITOLAK->value, 
+            StatusPendaftaran::DRAFT->value
+        ]);
         }])->get();
         
         $tahun_aktif = TahunAkademik::where('aktif', true)->first();
@@ -72,7 +115,10 @@ class PendaftaranController extends Controller
                 // 2. HITUNG ULANG (Di dalam lock, ini aman)
                 $terisi = CalonSiswa::where('jurusan_id', $jurusan_tipe_kelas->jurusan_id)
                                     ->where('tipe_kelas_id', $jurusan_tipe_kelas->tipe_kelas_id)
-                                    ->whereNotIn('status_pendaftaran', ['Ditolak', 'Draft'])
+                                    ->whereNotIn('status_pendaftaran', [
+                                        StatusPendaftaran::DITOLAK->value, 
+                                        StatusPendaftaran::DRAFT->value
+                                    ])
                                     ->count();
 
                 // 3. LOGIKA TOLAK JIKA PENUH (Hanya jika pendaftar baru)
@@ -114,7 +160,7 @@ class PendaftaranController extends Controller
 
                 if (!$calonSiswa) {
                     $data_siswa['no_pendaftaran'] = date('Y') . $gelombang_aktif->id . $jurusan_tipe_kelas->jurusan_id . rand(1000, 9999);
-                    $data_siswa['status_pendaftaran'] = 'Melengkapi Berkas';
+                    $data_siswa['status_pendaftaran'] = StatusPendaftaran::MELENGKAPI_BERKAS->value;
                     $data_siswa['tanggal_submit'] = now();
                     $data_siswa['promo_id'] = $gelombang_aktif->promo_id;
                 }
