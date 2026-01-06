@@ -115,8 +115,8 @@ class PembayaranController extends Controller
 
         // 2. Validasi sisa tagihan
         $sisa_tagihan = $tagihanInduk->total_nominal_biaya - $tagihanInduk->total_sudah_dibayar;
-        if ($request->jumlah > $sisa_tagihan) {
-            return back()->with('error', 'Jumlah yang Anda bayarkan melebihi sisa tagihan (Rp ' . number_format($sisa_tagihan, 0, ',', '.') . ').');
+        if ($request->jumlah > ($sisa_tagihan + 50000)) { // Batas toleransi 50rb
+            return back()->with('error', 'Jumlah pembayaran terlalu jauh melebihi sisa tagihan.');
         }
         
         // 3. Simpan

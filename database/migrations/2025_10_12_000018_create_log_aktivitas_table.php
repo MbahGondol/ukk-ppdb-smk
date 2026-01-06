@@ -16,7 +16,7 @@ return new class extends Migration {
             $table->json('data_lama')->nullable();
             $table->json('data_baru')->nullable();
             $table->string('ip_address', 45)->nullable();
-            $table->string('platform', 50)->nullable();
+            $table->text('platform')->nullable();
             $table->timestamps();
         });
     }

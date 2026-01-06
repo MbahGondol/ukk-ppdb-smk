@@ -32,17 +32,19 @@ class GelombangController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        // 1. Tampung hasil validasi ke variabel
+        $validatedData = $request->validate([
             'nama_gelombang' => 'required|string|max:100',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'promo_id' => 'nullable|exists:promo,id',
         ]);
 
-        Gelombang::create($request->all());
+        // 2. Gunakan variabel terverifikasi itu untuk create
+        Gelombang::create($validatedData);
 
         return redirect()->route('admin.gelombang.index')
-                         ->with('success', 'Gelombang pendaftaran berhasil dibuat.');
+                            ->with('success', 'Gelombang pendaftaran berhasil dibuat.');
     }
 
     /**
@@ -60,7 +62,8 @@ class GelombangController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $request->validate([
+        // 1. Tampung hasil validasi (Sama seperti di store)
+        $validatedData = $request->validate([
             'nama_gelombang' => 'required|string|max:100',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
@@ -68,10 +71,12 @@ class GelombangController extends Controller
         ]);
 
         $gelombang = Gelombang::findOrFail($id);
-        $gelombang->update($request->all());
+        
+        // 2. Gunakan variabel hasil validasi
+        $gelombang->update($validatedData); 
 
         return redirect()->route('admin.gelombang.index')
-                         ->with('success', 'Data gelombang berhasil diperbarui.');
+                            ->with('success', 'Data gelombang berhasil diperbarui.');
     }
 
     /**

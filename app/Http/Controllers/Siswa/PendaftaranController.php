@@ -29,20 +29,10 @@ class PendaftaranController extends Controller
             return redirect()->route('siswa.dashboard');
         }
 
-        // 1. Ambil data JurusanTipeKelas
-        $data_jurusan_tipe_kelas = JurusanTipeKelas::with(['jurusan', 'tipeKelas'])->get();
-        
-        // 2. PERBAIKAN: Hitung jumlah pendaftar secara MANUAL (Looping)
-        // Agar tidak kena error "Call to undefined method"
-        foreach ($data_jurusan_tipe_kelas as $kombinasi) {
-            $jumlah = CalonSiswa::where('jurusan_id', $kombinasi->jurusan_id)
-                                ->where('tipe_kelas_id', $kombinasi->tipe_kelas_id)
-                                ->whereNotIn('status_pendaftaran', ['Ditolak', 'Draft'])
-                                ->count();
-            
-            // Tempelkan data jumlah ini ke objek agar bisa dibaca di View
-            $kombinasi->jumlah_pendaftar = $jumlah;
-        }
+        $data_jurusan_tipe_kelas = JurusanTipeKelas::with(['jurusan', 'tipeKelas']) ->withCount(['calonSiswa as jumlah_pendaftar' => function ($query) {
+            // Filter penghitungan langsung di level database
+            $query->whereNotIn('status_pendaftaran', ['Ditolak', 'Draft']);
+        }])->get();
         
         $tahun_aktif = TahunAkademik::where('aktif', true)->first();
         $gelombang_aktif = Gelombang::where('tanggal_mulai', '<=', now())
@@ -142,9 +132,25 @@ class PendaftaranController extends Controller
         // 3. Simpan Data (Transaction)
         try {
             DB::transaction(function () use ($request, $user, $calonSiswa) {
+                
+                // 1. LOCK & LOAD DATA MASTER
+                $jurusan_tipe_kelas = JurusanTipeKelas::where('id', $request->jurusan_tipe_kelas_id)
+                                        ->lockForUpdate() 
+                                        ->firstOrFail();
+
+                // 2. HITUNG ULANG
+                $terisi = CalonSiswa::where('jurusan_id', $jurusan_tipe_kelas->jurusan_id)
+                                    ->where('tipe_kelas_id', $jurusan_tipe_kelas->tipe_kelas_id)
+                                    ->whereNotIn('status_pendaftaran', ['Ditolak', 'Draft'])
+                                    ->count();
+
+                // 3. LOGIKA TOLAK JIKA PENUH
+                if (!$calonSiswa && $terisi >= $jurusan_tipe_kelas->kuota_kelas) {
+                    throw new \Exception('Mohon maaf, kuota jurusan ini baru saja PENUH. Transaksi dibatalkan.');
+                }
+
                 $tahun_aktif = TahunAkademik::findOrFail($request->tahun_akademik_id);
                 $gelombang_aktif = Gelombang::findOrFail($request->gelombang_id);
-                $jurusan_tipe_kelas = JurusanTipeKelas::findOrFail($request->jurusan_tipe_kelas_id);
 
                 $data_siswa = [
                     'nisn' => $request->nisn,
@@ -231,7 +237,10 @@ class PendaftaranController extends Controller
             });
 
         } catch (\Exception $e) {
-            return redirect()->back()->withErrors(['database' => 'Terjadi kesalahan: ' . $e->getMessage()])->withInput();
+            // Tangkap error, termasuk error kuota penuh tadi
+            return redirect()->back()
+                    ->withErrors(['error' => $e->getMessage()])
+                    ->withInput();
         }
 
         return redirect()->route('siswa.dashboard')

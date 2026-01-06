@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use App\Models\CalonSiswa;
+use App\Observers\CalonSiswaObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,5 +26,8 @@ class AppServiceProvider extends ServiceProvider
         if (str_contains(config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
+
+        // Nyalakan CCTV untuk CalonSiswa
+        CalonSiswa::observe(CalonSiswaObserver::class);
     }
 }
