@@ -46,8 +46,10 @@ class SiswaSeeder extends Seeder
                 'name' => $faker->name,
                 'email' => "siswa{$i}@gmail.com", // siswa1@gmail.com, dst
                 'password' => Hash::make('password'),
-                'role' => 'siswa',
             ]);
+
+            // Assign Role Spatie
+            $user->assignRole('siswa');
 
             // 4. Buat Calon Siswa
             $calonSiswa = CalonSiswa::create([

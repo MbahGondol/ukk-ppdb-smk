@@ -2,23 +2,24 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\User; // <-- 1. IMPORT MODEL USER
-use Illuminate\Support\Facades\Hash; // <-- 2. IMPORT HASH (untuk enkripsi password)
+use App\Models\User; 
+use Illuminate\Support\Facades\Hash; 
 
 class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        // 3. BUAT RESEPNYA
-        User::create([
+        // 1. Buat User dan SIMPAN ke variabel
+        $user = User::create([
             'name' => 'Admin PPDB',
             'email' => 'admin@ppdb.com',
-            'password' => Hash::make('password'), // 'password' adalah passwordnya
-            'role' => 'admin', // Sesuai migrasi Anda (File A)
+            'password' => Hash::make('password'),
             'aktif' => true,
-            'email_verified_at' => now() // Anggap email admin sudah terverifikasi
+            'email_verified_at' => now()
         ]);
+
+        // 2. Assign Role
+        $user->assignRole('admin'); 
     }
 }

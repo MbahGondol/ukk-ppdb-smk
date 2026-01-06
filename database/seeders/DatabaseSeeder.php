@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
     {
         // Panggil semua pabrik kita secara BERURUTAN
         $this->call([
+            RoleSeeder::class,
             AdminUserSeeder::class,
             TahunAkademikSeeder::class,
             PromoSeeder::class,

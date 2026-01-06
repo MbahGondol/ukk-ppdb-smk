@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use App\Http\Requests\Siswa\StorePendaftaranRequest;
 
 class PendaftaranController extends Controller
 {
@@ -54,99 +55,31 @@ class PendaftaranController extends Controller
     /**
      * Menyimpan data pendaftaran (CREATE - Logic)
      */
-    public function store(Request $request)
+    public function store(StorePendaftaranRequest $request) // Type-hint Request Baru
     {
         $user = Auth::user();
-        $userId = $user->id;
         $calonSiswa = $user->calonSiswa;
-
-        // 1. Validasi Data Input
-        $validator = Validator::make($request->all(), [
-            // Ignore unique milik user sendiri saat update
-            'nisn' => ['required', 'string', 'digits:10', Rule::unique('calon_siswa')->ignore($userId, 'user_id')],
-            'nik' => ['required', 'string', 'digits:16', Rule::unique('calon_siswa')->ignore($userId, 'user_id')],
-            
-            'nama_lengkap' => 'required|string|max:150',
-            'jenis_kelamin' => ['required', Rule::in(['Laki-laki', 'Perempuan'])],
-            'tempat_lahir' => 'required|string|max:100',
-            'tanggal_lahir' => 'required|date',
-            'agama' => 'required|string|max:50',
-            'no_hp' => 'required|string|max:20',
-            'asal_sekolah' => 'required|string|max:150',
-            'jurusan_tipe_kelas_id' => 'required|exists:jurusan_tipe_kelas,id',
-            'alamat' => 'required|string',
-            'rt_rw' => 'required|string|max:20',
-            'desa_kelurahan' => 'required|string|max:100',
-            'kecamatan' => 'required|string|max:100',
-            'kota_kab' => 'required|string|max:100',
-            'kode_pos' => 'required|string|max:10',
-            'tahun_lulus' => 'required|integer|digits:4',
-            
-            'anak_ke' => 'nullable|integer',
-            'jumlah_saudara' => 'nullable|integer',
-            'tinggi_badan' => 'nullable|integer',
-            'berat_badan' => 'nullable|integer',
-            
-            'nama_ayah' => 'required|string|max:100',
-            'nik_ayah' => 'nullable|string|max:16', 
-            'tahun_lahir_ayah' => 'nullable|integer|digits:4|min:1900|max:' . date('Y'),
-            'pendidikan_ayah' => 'nullable|string',
-            'pekerjaan_ayah' => 'nullable|string',
-            'penghasilan_ayah' => 'nullable|numeric|max:9999999999999',
-            'nohp_ayah' => 'nullable|string',
-
-            'nama_ibu' => 'required|string|max:100',
-            'nik_ibu' => 'nullable|string|max:16', 
-            'tahun_lahir_ibu' => 'nullable|integer|digits:4|min:1900|max:' . date('Y'),
-            'pendidikan_ibu' => 'nullable|string',
-            'pekerjaan_ibu' => 'nullable|string',
-            'penghasilan_ibu' => 'nullable|numeric|max:9999999999999',
-            'nohp_ibu' => 'nullable|string',
-
-            'nama_wali' => 'nullable|string|max:100',
-            'hubungan_wali' => 'nullable|string',
-            'alamat_wali' => 'nullable|string',
-            'nohp_wali' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->route('siswa.pendaftaran.create')->withErrors($validator)->withInput();
-        }
-
-        // 2. VALIDASI KUOTA (MANUAL JUGA)
-        $pilihan_jurusan = JurusanTipeKelas::with(['jurusan', 'tipeKelas'])->findOrFail($request->jurusan_tipe_kelas_id);
-        
-        // Hitung manual lagi
-        $terisi = CalonSiswa::where('jurusan_id', $pilihan_jurusan->jurusan_id)
-                            ->where('tipe_kelas_id', $pilihan_jurusan->tipe_kelas_id)
-                            ->whereNotIn('status_pendaftaran', ['Ditolak', 'Draft'])
-                            ->count();
-
-        // Logika: Jika ini pendaftaran BARU (bukan edit) dan kuota penuh -> TOLAK
-        if (!$calonSiswa && $terisi >= $pilihan_jurusan->kuota_kelas) {
-            return redirect()->route('siswa.pendaftaran.create')
-                ->withInput()
-                ->withErrors(['jurusan_tipe_kelas_id' => 'Mohon maaf, kuota untuk jurusan ' . $pilihan_jurusan->jurusan->nama_jurusan . ' baru saja PENUH. Silakan pilih jurusan lain.']);
-        }
 
         // 3. Simpan Data (Transaction)
         try {
             DB::transaction(function () use ($request, $user, $calonSiswa) {
                 
-                // 1. LOCK & LOAD DATA MASTER
+                // 1. LOCK & LOAD (Ini kunci sebenarnya untuk integritas data)
                 $jurusan_tipe_kelas = JurusanTipeKelas::where('id', $request->jurusan_tipe_kelas_id)
                                         ->lockForUpdate() 
                                         ->firstOrFail();
 
-                // 2. HITUNG ULANG
+                // 2. HITUNG ULANG (Di dalam lock, ini aman)
                 $terisi = CalonSiswa::where('jurusan_id', $jurusan_tipe_kelas->jurusan_id)
                                     ->where('tipe_kelas_id', $jurusan_tipe_kelas->tipe_kelas_id)
                                     ->whereNotIn('status_pendaftaran', ['Ditolak', 'Draft'])
                                     ->count();
 
-                // 3. LOGIKA TOLAK JIKA PENUH
-                if (!$calonSiswa && $terisi >= $jurusan_tipe_kelas->kuota_kelas) {
-                    throw new \Exception('Mohon maaf, kuota jurusan ini baru saja PENUH. Transaksi dibatalkan.');
+                // 3. LOGIKA TOLAK JIKA PENUH (Hanya jika pendaftar baru)
+                $sedangPindahJurusan = $calonSiswa && ($calonSiswa->jurusan_id != $jurusan_tipe_kelas->jurusan_id || $calonSiswa->tipe_kelas_id != $jurusan_tipe_kelas->tipe_kelas_id);
+
+                if ((!$calonSiswa || $sedangPindahJurusan) && $terisi >= $jurusan_tipe_kelas->kuota_kelas) {
+                    throw new \Exception('Mohon maaf, kuota jurusan ini PENUH.');
                 }
 
                 $tahun_aktif = TahunAkademik::findOrFail($request->tahun_akademik_id);
@@ -237,13 +170,12 @@ class PendaftaranController extends Controller
             });
 
         } catch (\Exception $e) {
-            // Tangkap error, termasuk error kuota penuh tadi
             return redirect()->back()
                     ->withErrors(['error' => $e->getMessage()])
                     ->withInput();
         }
 
         return redirect()->route('siswa.dashboard')
-                        ->with('success', 'Biodata berhasil disimpan/diperbarui! Silakan lanjut upload dokumen.');
+                        ->with('success', 'Biodata berhasil disimpan!');
     }
 }
