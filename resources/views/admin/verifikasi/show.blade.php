@@ -16,8 +16,10 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
+        {{-- KOLOM KIRI: SEMUA DATA SISWA (Data Diri, Ortu, Dokumen, Pembayaran) --}}
         <div class="lg:col-span-2 space-y-6">
             
+            {{-- 1. Status Header --}}
             <div class="bg-white shadow rounded-lg overflow-hidden border-l-4 
                 {{ $siswa->status_pendaftaran == 'Terdaftar' ? 'border-yellow-400' : 
                    ($siswa->status_pendaftaran == 'Ditolak' ? 'border-red-500' : 'border-green-500') }}">
@@ -41,6 +43,7 @@
                 @endif
             </div>
 
+            {{-- 2. Data Pribadi --}}
             <div class="bg-white shadow rounded-lg overflow-hidden">
                 <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
                     Data Pribadi Siswa
@@ -62,6 +65,7 @@
                 </div>
             </div>
 
+            {{-- 3. Alamat --}}
             <div class="bg-white shadow rounded-lg overflow-hidden">
                 <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
                     Alamat Tempat Tinggal
@@ -79,6 +83,7 @@
                 </div>
             </div>
 
+            {{-- 4. Akademik --}}
             <div class="bg-white shadow rounded-lg overflow-hidden">
                 <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
                     Akademik & Pilihan
@@ -113,6 +118,7 @@
                 </div>
             </div>
 
+            {{-- 5. Penanggung Jawab --}}
             <div class="bg-white shadow rounded-lg overflow-hidden">
                 <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
                     Data Penanggung Jawab
@@ -140,8 +146,60 @@
                 </div>
             </div>
 
+            {{-- 6. DOKUMEN SISWA (DIPINDAHKAN KE SINI) --}}
+            <div class="bg-white shadow rounded-lg overflow-hidden mt-6">
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
+                    Dokumen Siswa
+                </div>
+                <div class="divide-y divide-gray-100">
+                    @forelse($siswa->dokumen as $dokumen)
+                        <div class="p-4 flex items-center justify-between hover:bg-gray-50">
+                            <div class="truncate pr-2">
+                                <span class="block text-sm font-medium text-gray-900">{{ $dokumen->tipe_dokumen }}</span>
+                                <span class="block text-xs text-gray-500 truncate">{{ $dokumen->nama_asli_file }}</span>
+                            </div>
+                            <a href="{{ route('dokumen.show', $dokumen->id) }}" target="_blank" class="flex-shrink-0 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold hover:bg-blue-200">
+                                Lihat
+                            </a>
+                        </div>
+                    @empty
+                        <div class="p-4 text-center text-sm text-gray-500">Tidak ada dokumen.</div>
+                    @endforelse
+                </div>
+            </div>
+
+            {{-- 7. BUKTI PEMBAYARAN (DIPINDAHKAN KE SINI) --}}
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
+                    Bukti Pembayaran
+                </div>
+                <div class="divide-y divide-gray-100">
+                    @if($siswa->rencanaPembayaran)
+                        @forelse($siswa->rencanaPembayaran->pembayaran as $bayar)
+                            <div class="p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm font-bold text-gray-900">Rp {{ number_format($bayar->jumlah, 0, ',', '.') }}</span>
+                                    <span class="text-xs text-gray-500">{{ $bayar->tanggal_pembayaran->format('d/m/Y') }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800">{{ $bayar->status }}</span>
+                                    @if($bayar->buktiPembayaran)
+                                        <a href="{{ Storage::disk('public')->url($bayar->buktiPembayaran->file_path) }}" target="_blank" class="text-xs text-blue-600 hover:underline">Lihat Bukti</a>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                             <div class="p-4 text-center text-sm text-gray-500">Belum ada upload bayar.</div>
+                        @endforelse
+                    @else
+                        <div class="p-4 text-center text-sm text-gray-500">Belum ada tagihan.</div>
+                    @endif
+                </div>
+            </div>
+
         </div>
 
+        {{-- KOLOM KANAN: KHUSUS PANEL AKSI (STICKY) --}}
         <div class="space-y-6">
             
             @if ($siswa->status_pendaftaran == 'Terdaftar')
@@ -189,55 +247,6 @@
                     </div>
                 </div>
             @endif
-
-            <div class="bg-white shadow rounded-lg overflow-hidden mt-6">
-                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
-                    Dokumen Siswa
-                </div>
-                <div class="divide-y divide-gray-100">
-                    @forelse($siswa->dokumen as $dokumen)
-                        <div class="p-4 flex items-center justify-between hover:bg-gray-50">
-                            <div class="truncate pr-2">
-                                <span class="block text-sm font-medium text-gray-900">{{ $dokumen->tipe_dokumen }}</span>
-                                <span class="block text-xs text-gray-500 truncate">{{ $dokumen->nama_asli_file }}</span>
-                            </div>
-                            <a href="{{ route('dokumen.show', $dokumen->id) }}" target="_blank" class="flex-shrink-0 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold hover:bg-blue-200">
-                                Lihat
-                            </a>
-                        </div>
-                    @empty
-                        <div class="p-4 text-center text-sm text-gray-500">Tidak ada dokumen.</div>
-                    @endforelse
-                </div>
-            </div>
-
-            <div class="bg-white shadow rounded-lg overflow-hidden">
-                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 uppercase text-sm tracking-wider">
-                    Bukti Pembayaran
-                </div>
-                <div class="divide-y divide-gray-100">
-                    @if($siswa->rencanaPembayaran)
-                        @forelse($siswa->rencanaPembayaran->pembayaran as $bayar)
-                            <div class="p-4">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-sm font-bold text-gray-900">Rp {{ number_format($bayar->jumlah, 0, ',', '.') }}</span>
-                                    <span class="text-xs text-gray-500">{{ $bayar->tanggal_pembayaran->format('d/m/Y') }}</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800">{{ $bayar->status }}</span>
-                                    @if($bayar->buktiPembayaran)
-                                        <a href="{{ Storage::disk('public')->url($bayar->buktiPembayaran->file_path) }}" target="_blank" class="text-xs text-blue-600 hover:underline">Lihat Bukti</a>
-                                    @endif
-                                </div>
-                            </div>
-                        @empty
-                             <div class="p-4 text-center text-sm text-gray-500">Belum ada upload bayar.</div>
-                        @endforelse
-                    @else
-                        <div class="p-4 text-center text-sm text-gray-500">Belum ada tagihan.</div>
-                    @endif
-                </div>
-            </div>
 
         </div>
     </div>

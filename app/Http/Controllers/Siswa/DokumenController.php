@@ -92,21 +92,27 @@ class DokumenController extends Controller
         $dokumen = DokumenSiswa::findOrFail($id);
         $user = Auth::user();
 
-        // 1. Cek Hak Akses (Authorization)
-        if ($user->hasRole('siswa') && $dokumen->calon_siswa_id != $user->calonSiswa->id) {
-            abort(403, 'Anda tidak berhak melihat dokumen ini.');
+        $is_admin = $user->hasRole('admin');
+        $is_owner = false;
+
+        // Cek kepemilikan hanya jika user adalah siswa DAN sudah punya data calonSiswa
+        if ($user->hasRole('siswa') && $user->calonSiswa) {
+            $is_owner = ($dokumen->calon_siswa_id == $user->calonSiswa->id);
         }
 
-        // 2. Cek apakah file fisik ada di storage local
+        // Aturan Main: Hanya Admin ATAU Pemilik yang boleh lihat
+        if (!$is_admin && !$is_owner) {
+            abort(403, 'Anda tidak memiliki hak akses ke dokumen ini.');
+        }
+
         if (!Storage::disk('local')->exists($dokumen->file_path)) {
-            abort(404, 'File tidak ditemukan di server.');
+            abort(404, 'File fisik tidak ditemukan di server.');
         }
 
-        // 3. Ambil Full Path (Lokasi asli di harddisk server)
-        // Storage::path() mengubah 'dokumen_rahasia/xxx.jpg' menjadi 'C:\Projects\...\storage\app\private\...'
         $path = Storage::disk('local')->path($dokumen->file_path);
-
-        // 4. Return file agar bisa tampil di browser (Inline View)
+        
+        // Tambahkan header agar browser tahu tipe kontennya (Penting untuk PDF/Gambar)
+        // Dan paksa browser mendownload jika perlu, tapi untuk 'lihat' pakai 'inline'
         return response()->file($path);
     }
 

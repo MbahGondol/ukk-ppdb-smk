@@ -6,142 +6,124 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\CalonSiswa;
 use App\Models\PembayaranSiswa;
-use Illuminate\Support\Facades\DB; // PERBAIKAN 1: Import Facade DB
+use Illuminate\Support\Facades\DB;
 
 class VerifikasiController extends Controller
 {
     /**
-     * Menampilkan daftar semua siswa yang perlu diverifikasi.
+     * Menampilkan antrean siswa yang statusnya 'Terdaftar' (Belum Diterima/Ditolak)
      */
     public function index()
     {
-        $data_siswa = CalonSiswa::with(['user', 'jurusan'])
-                                ->where('status_pendaftaran', 'Terdaftar')
+        // Optimasi Query: Eager Loading untuk mencegah N+1 Problem
+        $data_siswa = CalonSiswa::with(['user', 'jurusan', 'gelombang'])
+                                ->where('status_pendaftaran', 'Terdaftar') 
                                 ->orderBy('tanggal_submit', 'asc')
                                 ->get();
 
-        return view('admin.verifikasi.index', [
-            'data_siswa' => $data_siswa
-        ]);
+        return view('admin.verifikasi.index', ['data_siswa' => $data_siswa]);
     }
 
-    /**
-     * Menampilkan data LENGKAP satu siswa.
-     */
     public function show(string $id)
     {
         $siswa = CalonSiswa::with([
-                            'user', 
-                            'jurusan', 
-                            'tipeKelas', 
-                            'penanggungJawab', 
-                            'dokumen', 
-                            'rencanaPembayaran.pembayaran.buktiPembayaran',
-                            'gelombang', 
-                            'promo'
-                        ])
-                        ->findOrFail($id);
+                            'user', 'jurusan', 'tipeKelas', 'penanggungJawab', 'dokumen', 
+                            'rencanaPembayaran.pembayaran.buktiPembayaran', // Nested Relation
+                            'gelombang', 'promo'
+                        ])->findOrFail($id);
         
-        return view('admin.verifikasi.show', [
-            'siswa' => $siswa
-        ]);
+        return view('admin.verifikasi.show', ['siswa' => $siswa]);
     }
 
     /**
-     * Memproses aksi (verifikasi / tolak) dari Admin.
+     * Update Status Manual (Terima/Tolak/Revisi Data Diri)
      */
     public function updateStatus(Request $request, string $id)
     {
         $request->validate([
             'aksi' => 'required|in:terima,tolak,revisi',
-            'catatan_admin' => 'required_if:aksi,tolak,revisi|nullable|string|max:1000'
+            'catatan_admin' => 'nullable|string|max:500'
         ]);
         
-        return DB::transaction(function() use ($request, $id) {
+        DB::transaction(function() use ($request, $id) {
             $siswa = CalonSiswa::findOrFail($id);
+            
+            $dataUpdate = [
+                'catatan_admin' => $request->catatan_admin
+            ];
 
-            // 1. Logika TERIMA
             if ($request->aksi == 'terima') {
+                $dataUpdate['status_pendaftaran'] = 'Resmi Diterima';
+                // Otomatis validasi semua dokumen jika admin klik Terima Manual
+                $siswa->dokumen()->update(['status_verifikasi' => 'Valid']);
+            } 
+            elseif ($request->aksi == 'revisi') {
+                $dataUpdate['status_pendaftaran'] = 'Melengkapi Berkas'; // Kembalikan ke siswa
+            } 
+            elseif ($request->aksi == 'tolak') {
+                $dataUpdate['status_pendaftaran'] = 'Ditolak';
+            }
+
+            $siswa->update($dataUpdate);
+        });
+
+        return redirect()->route('admin.verifikasi.index')->with('success', 'Status siswa berhasil diperbarui.');
+    }
+
+    /**
+     * THE MAGIC METHOD: Verifikasi Pembayaran + Auto Accept
+     */
+    public function verifikasiPembayaran(Request $request, string $id)
+    {
+        $request->validate(['aksi' => 'required|in:terima,tolak']);
+        
+        $pembayaran = PembayaranSiswa::findOrFail($id);
+        $pesan = 'Status pembayaran diperbarui.';
+
+        DB::transaction(function () use ($pembayaran, $request, &$pesan) {
+            
+            // 1. Update Status Pembayaran (Verified / Failed)
+            $statusBaru = ($request->aksi == 'terima') ? 'Verified' : 'Failed';
+            $pembayaran->update(['status' => $statusBaru]);
+
+            // 2. HITUNG ULANG TOTAL (Rekapitulasi Otomatis)
+            $rencana = $pembayaran->rencanaPembayaran;
+            
+            // Hitung hanya yang 'Verified'
+            $total_terbayar = $rencana->pembayaran()->where('status', 'Verified')->sum('jumlah');
+            $rencana->total_sudah_dibayar = $total_terbayar;
+
+            // Cek Lunas?
+            if ($total_terbayar >= $rencana->total_nominal_biaya) {
+                $rencana->status = 'Lunas';
+            } else {
+                $rencana->status = 'Belum Lunas';
+            }
+            $rencana->save();
+
+            // 3. AUTO-ACCEPTANCE LOGIC (FITUR WOW FACTOR)
+            // Jika pembayaran Valid DAN Lunas (atau minimal 50% - opsional), otomatis TERIMA siswa
+            // Syarat: Siswa belum 'Resmi Diterima' dan belum 'Ditolak'
+            
+            $siswa = $rencana->calonSiswa;
+            $ambang_batas = $rencana->total_nominal_biaya * 0.5; // Contoh: Minimal bayar 50% bisa diterima
+
+            if ($statusBaru == 'Verified' && 
+                $total_terbayar >= $ambang_batas && 
+                in_array($siswa->status_pendaftaran, ['Terdaftar', 'Melengkapi Berkas'])) {
                 
                 $siswa->update([
                     'status_pendaftaran' => 'Resmi Diterima',
-                    'catatan_admin' => null
+                    'catatan_admin' => 'Selamat! Anda diterima secara otomatis setelah verifikasi pembayaran.'
                 ]);
 
-                // Update Dokumen jadi Valid
-                $siswa->dokumen()->update([
-                    'status_verifikasi' => 'Valid'
-                ]);
+                // Opsional: Kunci Dokumen jadi Valid juga
+                $siswa->dokumen()->update(['status_verifikasi' => 'Valid']);
 
-                // Update Pembayaran jadi Verified
-                if ($siswa->rencanaPembayaran) {
-                    $siswa->rencanaPembayaran->pembayaran()->update([
-                        'status' => 'Verified'
-                    ]);
-                }
-                
-                return redirect()->route('admin.verifikasi.index')
-                                 ->with('success', 'Selamat! Siswa ' . $siswa->nama_lengkap . ' telah RESMI DITERIMA.');
-            } 
-            
-            // 2. Logika REVISI
-            elseif ($request->aksi == 'revisi') {
-                $siswa->update([
-                    'status_pendaftaran' => 'Melengkapi Berkas',
-                    'catatan_admin' => $request->catatan_admin
-                ]);
-
-                return redirect()->route('admin.verifikasi.index')
-                                 ->with('warning', 'Status dikembalikan ke "Melengkapi Berkas".');
+                $pesan .= ' DAN SISWA OTOMATIS DITERIMA (Auto-Accept).';
             }
-
-            // 3. Logika TOLAK
-            elseif ($request->aksi == 'tolak') {
-                $siswa->update([
-                    'status_pendaftaran' => 'Ditolak',
-                    'catatan_admin' => $request->catatan_admin
-                ]);
-
-                return redirect()->route('admin.verifikasi.index')
-                                 ->with('error', 'Siswa ' . $siswa->nama_lengkap . ' telah DITOLAK.');
-            }
-            
-            // Default jika tidak masuk kondisi di atas (seharusnya tidak mungkin karena validasi)
-            return redirect()->route('admin.verifikasi.index');
         });
-    }
 
-    public function verifikasiPembayaran(Request $request, string $id)
-    {
-        $request->validate([
-            'aksi' => 'required|in:terima,tolak',
-        ]);
-        
-        $pembayaran = PembayaranSiswa::findOrFail($id);
-        
-        if ($request->aksi == 'terima') {
-            $pembayaran->update(['status' => 'Verified']);
-        } else {
-            $pembayaran->update(['status' => 'Failed']);
-        }
-
-        // LOGIKA HITUNG ULANG
-        $rencana = $pembayaran->rencanaPembayaran;
-        
-        $total_terbayar = $rencana->pembayaran()
-                                 ->where('status', 'Verified')
-                                 ->sum('jumlah');
-
-        $rencana->total_sudah_dibayar = $total_terbayar;
-
-        if ($total_terbayar >= $rencana->total_nominal_biaya) {
-            $rencana->status = 'Lunas';
-        } else {
-            $rencana->status = 'Belum Lunas';
-        }
-        
-        $rencana->save();
-
-        return back()->with('success', 'Status pembayaran berhasil diperbarui.');
+        return back()->with('success', $pesan);
     }
 }
