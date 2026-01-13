@@ -69,14 +69,17 @@ class PendaftaranController extends Controller
         if ($calonSiswa && $calonSiswa->status_pendaftaran != StatusPendaftaran::MELENGKAPI_BERKAS->value) {
             return redirect()->route('siswa.dashboard');
         }
-
-        $data_jurusan_tipe_kelas = JurusanTipeKelas::with(['jurusan', 'tipeKelas']) ->withCount(['calonSiswa as jumlah_pendaftar' => function ($query) {
-            // Filter penghitungan langsung di level database
-            $query->whereNotIn('status_pendaftaran', [
-            StatusPendaftaran::DITOLAK->value, 
-            StatusPendaftaran::DRAFT->value
-        ]);
-        }])->get();
+        
+        $data_jurusan_tipe_kelas = JurusanTipeKelas::with(['jurusan', 'tipeKelas'])
+            ->addSelect(['jumlah_pendaftar' => CalonSiswa::selectRaw('count(*)')
+                ->whereColumn('calon_siswa.jurusan_id', 'jurusan_tipe_kelas.jurusan_id')
+                ->whereColumn('calon_siswa.tipe_kelas_id', 'jurusan_tipe_kelas.tipe_kelas_id')
+                ->whereNotIn('status_pendaftaran', [
+                    StatusPendaftaran::DITOLAK->value, 
+                    StatusPendaftaran::DRAFT->value
+                ])
+            ])
+            ->get();
         
         $tahun_aktif = TahunAkademik::where('aktif', true)->first();
         $gelombang_aktif = Gelombang::where('tanggal_mulai', '<=', now())
