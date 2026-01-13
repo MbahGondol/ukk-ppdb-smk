@@ -6,28 +6,40 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\CalonSiswa;
+use App\Enums\StatusPendaftaran; 
 
 class DashboardController extends Controller
 {
+    /**
+     * Menampilkan Dashboard Utama
+     */
     public function index()
     {
-        // 1. Dapatkan ID user yang sedang login
         $userId = Auth::id();
 
-        // 2. Cek apakah user ini sudah punya data di tabel 'calon_siswa'
-        // Kita gunakan relasi 'calonSiswa' yang sudah kita buat di Model User
-        $calonSiswa = Auth::user()->calonSiswa;
+        // Kita gunakan 'with()' (Eager Loading) untuk mengambil relasi 'rencanaPembayaran' sekaligus.
+        // Ini mencegah query berulang saat Dashboard mengecek status lunas/belum.
+        $calonSiswa = CalonSiswa::with(['rencanaPembayaran'])
+                        ->where('user_id', $userId)
+                        ->first();
 
         return view('siswa.dashboard', [
             'calonSiswa' => $calonSiswa
         ]);
     }
 
+    /**
+     * Menampilkan detail biodata (Read Only)
+     */
     public function lihatBiodata()
     {
         $user = Auth::user();
         
-        $calonSiswa = $user->calonSiswa()->with(['jurusan', 'tipeKelas', 'penanggungJawab', 'gelombang', 'promo'])->first();
+        // Eager loading di sini sudah bagus, pertahankan.
+        $calonSiswa = CalonSiswa::where('user_id', $user->id)
+                        ->with(['jurusan', 'tipeKelas', 'penanggungJawab', 'gelombang', 'promo'])
+                        ->first();
 
         if (!$calonSiswa) {
             return redirect()->route('siswa.pendaftaran.create')
@@ -40,26 +52,42 @@ class DashboardController extends Controller
         ]);
     }
 
+    /**
+     * Cetak Bukti Pendaftaran/Diterima
+     */
     public function cetakBukti()
     {
         $user = Auth::user();
-        $siswa = $user->calonSiswa()->with(['jurusan', 'tipeKelas', 'gelombang'])->first();
+        $siswa = CalonSiswa::where('user_id', $user->id)
+                    ->with(['jurusan', 'tipeKelas', 'gelombang', 'rencanaPembayaran'])
+                    ->first();
 
-        // Cek Keamanan: Hanya boleh cetak jika sudah selesai daftar
-        if (!$siswa || $siswa->status_pendaftaran == 'Melengkapi Berkas' || $siswa->status_pendaftaran == 'Draft') {
-            return back()->with('error', 'Anda belum menyelesaikan pendaftaran. Silakan upload dokumen dan pembayaran dulu.');
+        // 1. Cek Data
+        if (!$siswa) {
+            return back()->with('error', 'Data tidak ditemukan.');
         }
 
-        // Render View khusus PDF
+        // 2. Cek Status Kelulusan (Hard Security Check)
+        // Kita memblokir akses jika statusnya belum Resmi Diterima.
+        if ($siswa->status_pendaftaran !== 'Resmi Diterima') {
+            return back()->with('error', 'Maaf, Anda belum dinyatakan lulus seleksi.');
+        }
+
+        // 3. Cek Administrasi (Opsional: Blokir cetak jika belum lunas)
+        // Jika Anda ingin memaksa lunas dulu baru bisa cetak, aktifkan blok ini:
+        /*
+        if ($siswa->masih_punya_hutang) {
+             return back()->with('error', 'Silakan lunasi administrasi untuk mencetak bukti.');
+        }
+        */
+
         $pdf = Pdf::loadView('siswa.cetak_bukti', [
             'siswa' => $siswa,
             'user' => $user
         ]);
 
-        // Set ukuran kertas A4
         $pdf->setPaper('a4', 'portrait');
 
-        // Download file dengan nama khusus
-        return $pdf->stream('Bukti-Pendaftaran-' . $siswa->no_pendaftaran . '.pdf');
+        return $pdf->stream('Bukti-Diterima-' . $siswa->no_pendaftaran . '.pdf');
     }
 }

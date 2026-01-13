@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Casts\Attribute; 
+use App\Enums\StatusPendaftaran;
 
 class CalonSiswa extends Model
 {
@@ -75,9 +77,27 @@ class CalonSiswa extends Model
     /**
      * Relasi 1:N ke Penanggung Jawab (Ayah, Ibu, Wali)
      */
-    public function penanggungJawab(): HasMany
+    public function penanggungJawab()
     {
         return $this->hasMany(PenanggungJawab::class, 'calon_siswa_id');
+    }
+
+    // 2. Buat Helper Accessor untuk mempermudah pengambilan data di View
+    // Ini agar di blade cukup panggil $calonSiswa->ayah, $calonSiswa->ibu
+    
+    public function getDataAyahAttribute()
+    {
+        return $this->penanggungJawab->where('hubungan', 'Ayah')->first();
+    }
+
+    public function getDataIbuAttribute()
+    {
+        return $this->penanggungJawab->where('hubungan', 'Ibu')->first();
+    }
+
+    public function getDataWaliAttribute()
+    {
+        return $this->penanggungJawab->where('hubungan', 'Wali')->first();
     }
 
     /**
@@ -94,5 +114,49 @@ class CalonSiswa extends Model
     public function rencanaPembayaran(): HasOne
     {
         return $this->hasOne(RencanaPembayaran::class, 'calon_siswa_id');
+    }
+
+    /**
+     * Cek apakah siswa masih punya tanggungan pembayaran.
+     */
+    public function getMasihPunyaHutangAttribute(): bool
+    {
+        // Jika belum ada rencana pembayaran, dianggap tidak berhutang (atau sesuaikan logic Anda)
+        if (!$this->rencanaPembayaran) {
+            return false;
+        }
+        return $this->rencanaPembayaran->status === 'Belum Lunas';
+    }
+
+    /**
+     * Cek apakah tombol aksi perlu ditampilkan.
+     */
+    public function getButuhTindakanAttribute(): bool
+    {
+        // Ganti string ini dengan Enum nanti: StatusPendaftaran::MELENGKAPI_BERKAS->value, dst.
+        $statusProses = [
+            'Melengkapi Berkas', 
+            'Terdaftar', 
+            'Proses Verifikasi'
+        ];
+
+        return in_array($this->status_pendaftaran, $statusProses) 
+            || ($this->status_pendaftaran === 'Resmi Diterima' && $this->masih_punya_hutang);
+    }
+    
+    /**
+     * Helper untuk menentukan progress bar (0-100%)
+     */
+    public function getProgresPendaftaranAttribute(): int
+    {
+        // Logika sederhana untuk UX Bar
+        return match ($this->status_pendaftaran) {
+            'Melengkapi Berkas' => 25,
+            'Terdaftar' => 50,
+            'Proses Verifikasi' => 75,
+            'Resmi Diterima' => 100,
+            'Ditolak' => 0,
+            default => 0,
+        };
     }
 }

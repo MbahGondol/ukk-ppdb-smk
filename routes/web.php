@@ -46,8 +46,6 @@ Route::controller(AuthController::class)->group(function () {
 
         Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
 
-        Route::get('/dokumen/lihat/{id}', [App\Http\Controllers\Siswa\DokumenController::class, 'show'])->name('dokumen.show');
-
         // ========================
         // --- GRUP KHUSUS ADMIN ---
         // ========================
@@ -93,35 +91,27 @@ Route::controller(AuthController::class)->group(function () {
         // =========================
         Route::middleware('role:siswa')->prefix('siswa')->name('siswa.')->group(function () {
             
-            // Rute untuk Dashboard Siswa (yang "pintar")
+            // Rute untuk Dashboard Siswa
             Route::get('dashboard', [SiswaDashboardController::class, 'index'])->name('dashboard');
-
             Route::get('biodata', [SiswaDashboardController::class, 'lihatBiodata'])->name('biodata');
-
             Route::get('cetak-bukti', [SiswaDashboardController::class, 'cetakBukti'])->name('cetak.bukti');
             
-            // Rute untuk menampilkan form pendaftaran
+            // Pendaftaran
             Route::get('pendaftaran', [PendaftaranController::class, 'create'])->name('pendaftaran.create');
-            
-            // Rute untuk MENYIMPAN form pendaftaran
             Route::post('pendaftaran', [PendaftaranController::class, 'store'])->name('pendaftaran.store');
             
-            // Rute untuk Halaman Upload Dokumen
+            // --- DOKUMEN ---
             Route::get('dokumen', [DokumenController::class, 'index'])->name('dokumen.index');
-            
-            // Rute untuk MENYIMPAN file dokumen
             Route::post('dokumen', [DokumenController::class, 'store'])->name('dokumen.store');
+            
+            // Route untuk Preview File Aman
+            Route::get('dokumen/{id}/preview', [DokumenController::class, 'show'])->name('dokumen.show'); 
 
-            // Rute untuk MENGHAPUS file dokumen
             Route::delete('dokumen/{id}', [DokumenController::class, 'destroy'])->name('dokumen.destroy');
 
-            // Rute untuk Halaman Pembayaran
+            // --- PEMBAYARAN ---
             Route::get('pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
-            
-            // Rute untuk MENYIMPAN bukti pembayaran
             Route::post('pembayaran', [PembayaranController::class, 'store'])->name('pembayaran.store');
-
-            // Rute untuk MENGHAPUS bukti pembayaran
             Route::delete('pembayaran/{id}', [PembayaranController::class, 'destroy'])->name('pembayaran.destroy');
         });
     });

@@ -283,9 +283,9 @@
                     </div>
                     
                     @php
-                        $ayah = $calonSiswa ? $calonSiswa->orangTua->where('hubungan', 'Ayah')->first() : null;
-                        $ibu = $calonSiswa ? $calonSiswa->orangTua->where('hubungan', 'Ibu')->first() : null;
-                        $wali = $calonSiswa ? $calonSiswa->orangTua->where('hubungan', 'Wali')->first() : null;
+                        $ayah = $calonSiswa ? $calonSiswa->data_ayah : null;
+                        $ibu  = $calonSiswa ? $calonSiswa->data_ibu : null;
+                        $wali = $calonSiswa ? $calonSiswa->data_wali : null;
                     @endphp
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
