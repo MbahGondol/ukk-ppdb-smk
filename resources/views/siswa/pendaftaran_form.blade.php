@@ -96,10 +96,26 @@
     <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100 relative">
         <div class="p-8 md:p-10">
             
-            <form action="{{ route('siswa.pendaftaran.store') }}" method="POST" id="pendaftaranForm">
-                @csrf
-                <input type="hidden" name="tahun_akademik_id" value="{{ $tahun_aktif->id }}">
-                <input type="hidden" name="gelombang_id" value="{{ $gelombang_aktif->id }}">
+            @php
+            // Cek apakah ada data siswa (Mode Edit) atau tidak (Mode Daftar Baru)
+            $isEdit = isset($calonSiswa) && $calonSiswa;
+            
+            // Tentukan URL tujuan: ke 'update' jika edit, ke 'store' jika baru
+            $urlAction = $isEdit 
+                ? route('siswa.pendaftaran.update', $calonSiswa->id) 
+                : route('siswa.pendaftaran.store');
+        @endphp
+
+        <form action="{{ $urlAction }}" method="POST" id="pendaftaranForm">
+            @csrf
+            
+            {{-- Jika Mode Edit, kita harus memalsukan method menjadi PUT agar Controller Update merespon --}}
+            @if($isEdit)
+                @method('PUT')
+            @endif
+
+            <input type="hidden" name="tahun_akademik_id" value="{{ $tahun_aktif->id }}">
+            <input type="hidden" name="gelombang_id" value="{{ $gelombang_aktif->id }}">
 
                 <div class="mb-12 step-indicator">
                     <div class="step-wrapper">
@@ -132,11 +148,21 @@
                             <option value="">-- Silakan Pilih Jurusan --</option>
                             @foreach($data_jurusan_tipe_kelas as $jtk)
                                 @php
+                                    // Hitung sisa kuota
                                     $sisa = $jtk->kuota_kelas - $jtk->jumlah_pendaftar;
-                                    $isDisabled = $sisa <= 0 && (!$calonSiswa || $calonSiswa->jurusan_id != $jtk->jurusan_id);
+                                    
+                                    // Cek apakah ini jurusan siswa saat ini?
+                                    $isMyChoice = $calonSiswa && 
+                                                $calonSiswa->jurusan_id == $jtk->jurusan_id && 
+                                                $calonSiswa->tipe_kelas_id == $jtk->tipe_kelas_id;
+
+                                    // Disable jika penuh KECUALI ini adalah pilihan siswa itu sendiri (sedang diedit)
+                                    $isDisabled = $sisa <= 0 && !$isMyChoice;
                                 @endphp
+                                
                                 <option value="{{ $jtk->id }}" 
-                                    {{ old('jurusan_tipe_kelas_id', $calonSiswa?->jurusan_id && $calonSiswa?->tipe_kelas_id ? $calonSiswa->jurusan_tipe_kelas_id_logic_disini_sebaiknya_match_id : '') == $jtk->id ? 'selected' : '' }}
+                                    {{-- Logika selection: Prioritas old input (jika gagal validasi), jika tidak ada cek data database --}}
+                                    {{ old('jurusan_tipe_kelas_id', $isMyChoice ? $jtk->id : '') == $jtk->id ? 'selected' : '' }}
                                     {{ $isDisabled ? 'disabled' : '' }}
                                 >
                                     {{ $jtk->jurusan->nama_jurusan }} - {{ $jtk->tipeKelas->nama_tipe_kelas }} (Sisa Kuota: {{ $sisa > 0 ? $sisa : 'PENUH' }})
@@ -145,15 +171,37 @@
                         </select>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                        <div class="col-span-1">
-                            <label class="required-label">NISN</label>
-                            <input type="number" name="nisn" value="{{ old('nisn', $calonSiswa?->nisn) }}" required class="form-control-lg" placeholder="Nomor Induk Siswa Nasional">
-                        </div>
-                        <div class="col-span-1">
-                            <label class="required-label">NIK Siswa</label>
-                            <input type="number" name="nik" value="{{ old('nik', $calonSiswa?->nik) }}" required class="form-control-lg" placeholder="Nomor Induk Kependudukan">
-                        </div>
+                    <div class="col-span-1">
+                        <label class="required-label">NISN</label>
+                        <input type="text" 
+                            name="nisn" 
+                            value="{{ old('nisn', $calonSiswa?->nisn) }}" 
+                            required 
+                            class="form-control-lg" 
+                            placeholder="10 digit angka"
+                            inputmode="numeric" 
+                            pattern="[0-9]*" 
+                            minlength="10" 
+                            maxlength="10"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '');" 
+                            title="NISN harus terdiri dari 10 digit angka">
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="required-label">NIK Siswa</label>
+                        <input type="text" 
+                            name="nik" 
+                            value="{{ old('nik', $calonSiswa?->nik) }}" 
+                            required 
+                            class="form-control-lg" 
+                            placeholder="16 digit angka sesuai KK"
+                            inputmode="numeric" 
+                            pattern="[0-9]*" 
+                            minlength="16" 
+                            maxlength="16"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '');"
+                            title="NIK harus terdiri dari 16 digit angka">
+                    </div>
                         <div class="md:col-span-2">
                             <label class="required-label">Nama Lengkap (Sesuai Ijazah)</label>
                             <input type="text" name="nama_lengkap" value="{{ old('nama_lengkap', $calonSiswa?->nama_lengkap) }}" required class="form-control-lg uppercase" placeholder="Nama lengkap tanpa gelar">
@@ -165,7 +213,7 @@
                         </div>
                         <div class="col-span-1">
                             <label class="required-label">Tanggal Lahir</label>
-                            <input type="date" name="tanggal_lahir" value="{{ old('tanggal_lahir', $calonSiswa?->tanggal_lahir) }}" required class="form-control-lg">
+                            <input type="date" name="tanggal_lahir" value="{{ old('tanggal_lahir', $calonSiswa?->tanggal_lahir ? \Carbon\Carbon::parse($calonSiswa->tanggal_lahir)->format('Y-m-d') : '') }}" required class="form-control-lg">
                         </div>
                         
                         <div class="col-span-1">
@@ -190,7 +238,18 @@
 
                         <div class="col-span-1">
                             <label class="required-label">No. HP / WA Siswa</label>
-                            <input type="text" name="no_hp" value="{{ old('no_hp', $calonSiswa?->no_hp) }}" required class="form-control-lg" placeholder="08xxxxxxxxxx">
+                            <input type="text" 
+                                name="no_hp" 
+                                value="{{ old('no_hp', $calonSiswa?->no_hp) }}" 
+                                required 
+                                class="form-control-lg" 
+                                placeholder="08xxxxxxxxxx"
+                                inputmode="numeric" 
+                                pattern="[0-9]*"
+                                minlength="10" 
+                                maxlength="13"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '');"
+                                title="Nomor HP harus berupa angka (10-13 digit)">
                         </div>
                         <div class="col-span-1">
                             <label class="required-label">Asal Sekolah (SMP/MTs)</label>
@@ -304,9 +363,17 @@
                                     <input type="text" name="nama_ayah" value="{{ old('nama_ayah', $ayah?->nama_lengkap) }}" required class="form-control-lg">
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label>NIK Ayah</label>
-                                        <input type="number" name="nik_ayah" value="{{ old('nik_ayah', $ayah?->nik) }}" required class="form-control-lg">
+                                    <div class="col-span-1">
+                                        <label>NIK Ayah</label> <input type="text" 
+                                            name="nik_ayah" 
+                                            value="{{ old('nik_ayah', $ayah?->nik) }}" 
+                                            class="form-control-lg"
+                                            placeholder="16 digit angka"
+                                            inputmode="numeric" 
+                                            pattern="[0-9]*" 
+                                            minlength="16" 
+                                            maxlength="16"
+                                            oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                                     </div>
                                     <div>
                                         <label>Tahun Lahir</label>
@@ -315,7 +382,16 @@
                                 </div>
                                 <div>
                                     <label>No. HP / WA</label>
-                                    <input type="text" name="nohp_ayah" value="{{ old('nohp_ayah', $ayah?->no_hp) }}" required class="form-control-lg">
+                                    <input type="text" 
+                                        name="nohp_ayah" 
+                                        value="{{ old('nohp_ayah', $ayah?->no_hp) }}" 
+                                        class="form-control-lg"
+                                        placeholder="08xxxxxxxxxx"
+                                        inputmode="numeric" 
+                                        pattern="[0-9]*" 
+                                        minlength="10" 
+                                        maxlength="13"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
@@ -359,9 +435,17 @@
                                     <input type="text" name="nama_ibu" value="{{ old('nama_ibu', $ibu?->nama_lengkap) }}" required class="form-control-lg">
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label>NIK Ibu</label>
-                                        <input type="number" name="nik_ibu" value="{{ old('nik_ibu', $ibu?->nik) }}" required class="form-control-lg">
+                                    <div class="col-span-1">
+                                        <label>NIK Ibu</label> <input type="text" 
+                                            name="nik_ibu" 
+                                            value="{{ old('nik_ibu', $ibu?->nik) }}" 
+                                            class="form-control-lg"
+                                            placeholder="16 digit angka"
+                                            inputmode="numeric" 
+                                            pattern="[0-9]*" 
+                                            minlength="16" 
+                                            maxlength="16"
+                                            oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                                     </div>
                                     <div>
                                         <label>Tahun Lahir</label>
@@ -370,7 +454,16 @@
                                 </div>
                                 <div>
                                     <label>No. HP / WA</label>
-                                    <input type="text" name="nohp_ibu" value="{{ old('nohp_ibu', $ibu?->no_hp) }}" required class="form-control-lg">
+                                    <input type="text" 
+                                        name="nohp_ibu" 
+                                        value="{{ old('nohp_ibu', $ibu?->no_hp) }}" 
+                                        class="form-control-lg"
+                                        placeholder="08xxxxxxxxxx"
+                                        inputmode="numeric" 
+                                        pattern="[0-9]*" 
+                                        minlength="10" 
+                                        maxlength="13"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
@@ -416,8 +509,17 @@
                                 <input type="text" name="hubungan_wali" value="{{ old('hubungan_wali', $wali?->pekerjaan) }}" placeholder="Contoh: Paman, Kakek" class="form-control-lg">
                             </div>
                             <div>
-                                <label>No HP Wali</label>
-                                <input type="text" name="nohp_wali" value="{{ old('nohp_wali', $wali?->no_hp) }}" class="form-control-lg">
+                                <label>No. HP / WA</label>
+                                <input type="text" 
+                                    name="nohp_wali" 
+                                    value="{{ old('nohp_wali', $wali?->no_hp) }}" 
+                                    class="form-control-lg"
+                                    placeholder="08xxxxxxxxxx"
+                                    inputmode="numeric" 
+                                    pattern="[0-9]*" 
+                                    minlength="10" 
+                                    maxlength="13"
+                                    oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                             </div>
                             <div>
                                 <label>Alamat Wali</label>
@@ -448,15 +550,20 @@
                             </svg>
                         </div>
                         <h4 class="text-xl font-bold text-gray-800 mb-2">Apakah data sudah benar?</h4>
-                        <p class="text-gray-600 max-w-lg mx-auto">Pastikan Anda telah mengisi semua data dengan benar sesuai dokumen asli (KK/Ijazah). Data yang disimpan <span class="font-bold text-red-600">tidak dapat diubah lagi</span>.</p>
+                        <p class="text-gray-600 max-w-lg mx-auto">
+                            Pastikan Anda telah mengisi semua data dengan benar sesuai dokumen asli (KK/Ijazah). 
+                            Data yang tidak valid dapat <span class="font-bold text-red-600">menghambat proses verifikasi</span>.
+                        </p>
                     </div>
 
-                    <label class="flex items-center gap-3 p-5 bg-white border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition cursor-pointer w-full group">      
+                    <label class="flex gap-4 p-5 bg-white border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition cursor-pointer w-full group" style="align-items: flex-start;">       
                         <input type="checkbox" id="agree" required 
-                            class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer group-hover:ring-2 group-hover:ring-blue-200 flex-shrink-0">
+                            class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer group-hover:ring-2 group-hover:ring-blue-200 flex-shrink-0"
+                            style="margin-top: 0.25rem;">
                         
                         <span class="text-gray-700 select-none text-base leading-relaxed">
-                            Saya menyatakan bahwa data yang saya isikan adalah benar dan dapat dipertanggungjawabkan. Saya bersedia menerima sanksi apabila ditemukan pemalsuan data dikemudian hari.
+                            Saya menyatakan bahwa data yang saya isikan adalah benar dan dapat dipertanggungjawabkan. 
+                            Saya bersedia menerima <strong>sanksi apabila ditemukan pemalsuan data</strong> di kemudian hari.
                         </span>
                     </label>
 
@@ -467,7 +574,7 @@
                         
                         <button type="submit" class="bg-green-600 text-white px-10 py-3 rounded-lg font-bold hover:bg-green-700 shadow-xl transform hover:scale-105 transition flex items-center gap-2 text-lg">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            SIMPAN PENDAFTARAN
+                            {{ $calonSiswa ? 'SIMPAN PERUBAHAN' : 'DAFTAR SEKARANG' }}
                         </button>
                     </div>
                 </div>
