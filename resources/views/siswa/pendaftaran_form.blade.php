@@ -367,7 +367,7 @@
                 <div id="step-3" class="step-content">
                     <div class="mb-8 pb-4 border-b border-gray-100">
                         <h3 class="text-xl font-bold text-gray-800">Data Orang Tua / Wali</h3>
-                        <p class="text-gray-500 text-sm mt-1">Data penghasilan dan pekerjaan akan digunakan untuk validasi beasiswa (jika ada).</p>
+                        <p class="text-gray-500 text-sm mt-1">Silakan pilih penanggung jawab siswa selama bersekolah.</p>
                     </div>
                     
                     @php
@@ -376,194 +376,96 @@
                         $wali = $calonSiswa ? $calonSiswa->data_wali : null;
                     @endphp
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        
-                        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                            <div class="flex items-center gap-3 mb-6 border-b border-slate-200 pb-3">
-                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                                </div>
-                                <h4 class="font-bold text-slate-800 text-lg">DATA AYAH</h4>
-                            </div>
-                            
-                            <div class="space-y-4">
-                                <div>
-                                    <label>Nama Lengkap Ayah</label>
-                                    <input type="text" name="nama_ayah" value="{{ old('nama_ayah', $ayah?->nama_lengkap) }}" required class="form-control-lg">
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="col-span-1">
-                                        <label>NIK Ayah</label> <input type="text" 
-                                            name="nik_ayah" 
-                                            value="{{ old('nik_ayah', $ayah?->nik) }}" 
-                                            class="form-control-lg"
-                                            placeholder="16 digit angka"
-                                            inputmode="numeric" 
-                                            pattern="[0-9]*" 
-                                            minlength="16" 
-                                            maxlength="16"
-                                            oninput="this.value = this.value.replace(/[^0-9]/g, '');">
-                                    </div>
-                                    <div>
-                                        <label>Tahun Lahir</label>
-                                        <input type="number" name="tahun_lahir_ayah" value="{{ old('tahun_lahir_ayah', $ayah?->tahun_lahir) }}" required class="form-control-lg text-center" placeholder="19xx">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label>No. HP / WA</label>
-                                    <input type="text" 
-                                        name="nohp_ayah" 
-                                        value="{{ old('nohp_ayah', $ayah?->no_hp) }}" 
-                                        class="form-control-lg"
-                                        placeholder="08xxxxxxxxxx"
-                                        inputmode="numeric" 
-                                        pattern="[0-9]*" 
-                                        minlength="10" 
-                                        maxlength="13"
-                                        oninput="this.value = this.value.replace(/[^0-9]/g, '');">
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label>Pendidikan</label>
-                                        <select name="pendidikan_ayah" class="form-control-lg">
-                                            <option value="SD" {{ old('pendidikan_ayah', $ayah?->pendidikan_terakhir) == 'SD' ? 'selected' : '' }}>SD</option>
-                                            <option value="SMP" {{ old('pendidikan_ayah', $ayah?->pendidikan_terakhir) == 'SMP' ? 'selected' : '' }}>SMP</option>
-                                            <option value="SMA/SMK" {{ old('pendidikan_ayah', $ayah?->pendidikan_terakhir) == 'SMA/SMK' ? 'selected' : '' }}>SMA/SMK</option>
-                                            <option value="S1" {{ old('pendidikan_ayah', $ayah?->pendidikan_terakhir) == 'S1' ? 'selected' : '' }}>S1</option>
-                                            <option value="S2" {{ old('pendidikan_ayah', $ayah?->pendidikan_terakhir) == 'S2' ? 'selected' : '' }}>S2</option>
-                                            <option value="S3" {{ old('pendidikan_ayah', $ayah?->pendidikan_terakhir) == 'S3' ? 'selected' : '' }}>S3</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label>Penghasilan Bulanan (Rp)</label>
-                                        <input type="number" name="penghasilan_ayah" 
-                                            value="{{ old('penghasilan_ayah', $ayah?->penghasilan_bulanan ? (int)$ayah->penghasilan_bulanan : '') }}" 
-                                            class="form-control-lg" 
-                                            placeholder="Contoh: 2500000">
-                                        <span class="text-xs text-gray-500">*Tulis angka saja tanpa titik/koma</span>
-                                    </div>       
-                                </div>
-                                <div>
-                                    <label>Pekerjaan Utama</label>
-                                    <input type="text" name="pekerjaan_ayah" value="{{ old('pekerjaan_ayah', $ayah?->pekerjaan) }}" required class="form-control-lg">
-                                </div>
-                            </div>
+                    {{-- PILIHAN TINGGAL BERSAMA --}}
+                    <div class="mb-8 bg-blue-50 p-4 rounded-xl border border-blue-200">
+                        <label class="font-bold text-gray-800 mb-2 block">Siswa Tinggal Bersama:</label>
+                        <div class="flex gap-6">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="tinggal_bersama" value="ortu" class="w-5 h-5 text-blue-600" checked onchange="toggleWali(false)">
+                                <span class="font-medium">Orang Tua Kandung</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="tinggal_bersama" value="wali" class="w-5 h-5 text-blue-600" onchange="toggleWali(true)">
+                                <span class="font-medium">Wali (Kerabat/Lainnya)</span>
+                            </label>
                         </div>
+                    </div>
 
-                        <div class="bg-pink-50/50 p-6 rounded-2xl border border-pink-100">
-                            <div class="flex items-center gap-3 mb-6 border-b border-pink-200 pb-3">
-                                <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-500">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    {{-- WRAPPER DATA ORTU --}}
+                    <div id="section-ortu" class="transition-all duration-300">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {{-- AYAH --}}
+                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                                <div class="flex items-center gap-3 mb-6 border-b border-slate-200 pb-3">
+                                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                    </div>
+                                    <h4 class="font-bold text-slate-800 text-lg">DATA AYAH</h4>
                                 </div>
-                                <h4 class="font-bold text-pink-800 text-lg">DATA IBU</h4>
+                                <div class="space-y-4">
+                                    <div><label class="required-label">Nama Lengkap Ayah</label><input type="text" name="nama_ayah" value="{{ old('nama_ayah', $ayah?->nama_lengkap) }}" required class="form-control-lg input-ortu"></div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="col-span-1"><label>NIK Ayah</label><input type="text" name="nik_ayah" value="{{ old('nik_ayah', $ayah?->nik) }}" class="form-control-lg input-ortu" maxlength="16" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                                        <div><label>Tahun Lahir</label><input type="number" name="tahun_lahir_ayah" value="{{ old('tahun_lahir_ayah', $ayah?->tahun_lahir) }}" required class="form-control-lg text-center input-ortu"></div>
+                                    </div>
+                                    <div><label>No. HP</label><input type="text" name="nohp_ayah" value="{{ old('nohp_ayah', $ayah?->no_hp) }}" class="form-control-lg input-ortu" maxlength="13" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><label>Pendidikan</label>
+                                            <select name="pendidikan_ayah" class="form-control-lg input-ortu">
+                                                <option value="SD">SD</option><option value="SMP">SMP</option><option value="SMA/SMK">SMA/SMK</option><option value="S1">S1</option><option value="S2">S2</option><option value="S3">S3</option>
+                                            </select>
+                                        </div>
+                                        <div><label>Penghasilan</label><input type="number" name="penghasilan_ayah" value="{{ old('penghasilan_ayah', $ayah?->penghasilan_bulanan ? (int)$ayah->penghasilan_bulanan : '') }}" class="form-control-lg input-ortu"></div>
+                                    </div>
+                                    <div><label>Pekerjaan</label><input type="text" name="pekerjaan_ayah" value="{{ old('pekerjaan_ayah', $ayah?->pekerjaan) }}" required class="form-control-lg input-ortu"></div>
+                                </div>
                             </div>
-                            
-                            <div class="space-y-4">
-                                <div>
-                                    <label>Nama Lengkap Ibu</label>
-                                    <input type="text" name="nama_ibu" value="{{ old('nama_ibu', $ibu?->nama_lengkap) }}" required class="form-control-lg">
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="col-span-1">
-                                        <label>NIK Ibu</label> <input type="text" 
-                                            name="nik_ibu" 
-                                            value="{{ old('nik_ibu', $ibu?->nik) }}" 
-                                            class="form-control-lg"
-                                            placeholder="16 digit angka"
-                                            inputmode="numeric" 
-                                            pattern="[0-9]*" 
-                                            minlength="16" 
-                                            maxlength="16"
-                                            oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                            {{-- IBU --}}
+                            <div class="bg-pink-50/50 p-6 rounded-2xl border border-pink-100">
+                                <div class="flex items-center gap-3 mb-6 border-b border-pink-200 pb-3">
+                                    <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-500">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                                     </div>
-                                    <div>
-                                        <label>Tahun Lahir</label>
-                                        <input type="number" name="tahun_lahir_ibu" value="{{ old('tahun_lahir_ibu', $ibu?->tahun_lahir) }}" required class="form-control-lg text-center" placeholder="19xx">
+                                    <h4 class="font-bold text-pink-800 text-lg">DATA IBU</h4>
+                                </div>
+                                <div class="space-y-4">
+                                    <div><label class="required-label">Nama Lengkap Ibu</label><input type="text" name="nama_ibu" value="{{ old('nama_ibu', $ibu?->nama_lengkap) }}" required class="form-control-lg input-ortu"></div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="col-span-1"><label>NIK Ibu</label><input type="text" name="nik_ibu" value="{{ old('nik_ibu', $ibu?->nik) }}" class="form-control-lg input-ortu" maxlength="16" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                                        <div><label>Tahun Lahir</label><input type="number" name="tahun_lahir_ibu" value="{{ old('tahun_lahir_ibu', $ibu?->tahun_lahir) }}" required class="form-control-lg text-center input-ortu"></div>
                                     </div>
-                                </div>
-                                <div>
-                                    <label>No. HP / WA</label>
-                                    <input type="text" 
-                                        name="nohp_ibu" 
-                                        value="{{ old('nohp_ibu', $ibu?->no_hp) }}" 
-                                        class="form-control-lg"
-                                        placeholder="08xxxxxxxxxx"
-                                        inputmode="numeric" 
-                                        pattern="[0-9]*" 
-                                        minlength="10" 
-                                        maxlength="13"
-                                        oninput="this.value = this.value.replace(/[^0-9]/g, '');">
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label>Pendidikan</label>
-                                        <select name="pendidikan_ibu" class="form-control-lg">
-                                            <option value="SD" {{ old('pendidikan_ibu', $ibu?->pendidikan_terakhir) == 'SD' ? 'selected' : '' }}>SD</option>
-                                            <option value="SMP" {{ old('pendidikan_ibu', $ibu?->pendidikan_terakhir) == 'SMP' ? 'selected' : '' }}>SMP</option>
-                                            <option value="SMA/SMK" {{ old('pendidikan_ibu', $ibu?->pendidikan_terakhir) == 'SMA/SMK' ? 'selected' : '' }}>SMA/SMK</option>
-                                            <option value="S1" {{ old('pendidikan_ibu', $ibu?->pendidikan_terakhir) == 'S1' ? 'selected' : '' }}>S1</option>
-                                            <option value="S2" {{ old('pendidikan_ibu', $ibu?->pendidikan_terakhir) == 'S2' ? 'selected' : '' }}>S2</option>
-                                            <option value="S3" {{ old('pendidikan_ibu', $ibu?->pendidikan_terakhir) == 'S3' ? 'selected' : '' }}>S3</option>
-                                        </select> </div>
-                                    
-                                    <div>
-                                        <label>Penghasilan Bulanan (Rp)</label>
-                                        <input type="number" name="penghasilan_ibu" 
-                                            value="{{ old('penghasilan_ibu', $ibu?->penghasilan_bulanan ? (int)$ibu->penghasilan_bulanan : '') }}" 
-                                            class="form-control-lg" 
-                                            placeholder="Contoh: 1000000">
-                                        <span class="text-xs text-gray-500">*Tulis angka saja tanpa titik/koma</span>
+                                    <div><label>No. HP</label><input type="text" name="nohp_ibu" value="{{ old('nohp_ibu', $ibu?->no_hp) }}" class="form-control-lg input-ortu" maxlength="13" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><label>Pendidikan</label>
+                                            <select name="pendidikan_ibu" class="form-control-lg input-ortu">
+                                                <option value="SD">SD</option><option value="SMP">SMP</option><option value="SMA/SMK">SMA/SMK</option><option value="S1">S1</option><option value="S2">S2</option><option value="S3">S3</option>
+                                            </select>
+                                        </div>
+                                        <div><label>Penghasilan</label><input type="number" name="penghasilan_ibu" value="{{ old('penghasilan_ibu', $ibu?->penghasilan_bulanan ? (int)$ibu->penghasilan_bulanan : '') }}" class="form-control-lg input-ortu"></div>
                                     </div>
-                                </div>
-                                <div>
-                                    <label>Pekerjaan Utama</label>
-                                    <input type="text" name="pekerjaan_ibu" value="{{ old('pekerjaan_ibu', $ibu?->pekerjaan) }}" required class="form-control-lg">
+                                    <div><label>Pekerjaan</label><input type="text" name="pekerjaan_ibu" value="{{ old('pekerjaan_ibu', $ibu?->pekerjaan) }}" required class="form-control-lg input-ortu"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-8 pt-6 border-t border-dashed border-gray-300">
+                    {{-- WRAPPER DATA WALI --}}
+                    <div id="section-wali" class="mt-8 pt-6 border-t border-dashed border-gray-300 hidden transition-all duration-300">
                         <h4 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
                             <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                            Data Wali (Opsional / Jika tidak tinggal bersama Ortu)
+                            Data Wali Murid
                         </h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-gray-50 rounded-xl border border-gray-200">
-                            <div>
-                                <label>Nama Wali</label>
-                                <input type="text" name="nama_wali" value="{{ old('nama_wali', $wali?->nama_lengkap) }}" class="form-control-lg">
-                            </div>
-                            <div>
-                                <label>Hubungan dengan Siswa</label>
-                                <input type="text" name="hubungan_wali" value="{{ old('hubungan_wali', $wali?->pekerjaan) }}" placeholder="Contoh: Paman, Kakek" class="form-control-lg">
-                            </div>
-                            <div>
-                                <label>No. HP / WA</label>
-                                <input type="text" 
-                                    name="nohp_wali" 
-                                    value="{{ old('nohp_wali', $wali?->no_hp) }}" 
-                                    class="form-control-lg"
-                                    placeholder="08xxxxxxxxxx"
-                                    inputmode="numeric" 
-                                    pattern="[0-9]*" 
-                                    minlength="10" 
-                                    maxlength="13"
-                                    oninput="this.value = this.value.replace(/[^0-9]/g, '');">
-                            </div>
-                            <div>
-                                <label>Alamat Wali</label>
-                                <input type="text" name="alamat_wali" value="{{ old('alamat_wali', $wali?->alamat_wali) }}" class="form-control-lg">
-                            </div>
+                            <div><label class="required-label">Nama Wali</label><input type="text" name="nama_wali" value="{{ old('nama_wali', $wali?->nama_lengkap) }}" class="form-control-lg input-wali"></div>
+                            <div><label class="required-label">Hubungan</label><input type="text" name="hubungan_wali" value="{{ old('hubungan_wali', $wali?->pekerjaan) }}" placeholder="Contoh: Paman" class="form-control-lg input-wali"></div>
+                            <div><label class="required-label">No. HP</label><input type="text" name="nohp_wali" value="{{ old('nohp_wali', $wali?->no_hp) }}" class="form-control-lg input-wali" maxlength="13" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                            <div><label class="required-label">Alamat Wali</label><input type="text" name="alamat_wali" value="{{ old('alamat_wali', $wali?->alamat_wali) }}" class="form-control-lg input-wali"></div>
                         </div>
                     </div>
 
                     <div class="mt-10 flex justify-between">
-                        <button type="button" onclick="prevStep(2)" class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-semibold">
-                            &larr; Kembali
-                        </button>
-                        <button type="button" onclick="nextStep(4)" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-lg transition font-semibold">
-                            Cek Data & Konfirmasi &rarr;
-                        </button>
+                        <button type="button" onclick="prevStep(2)" class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-semibold">&larr; Kembali</button>
+                        <button type="button" onclick="nextStep(4)" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-lg transition font-semibold">Cek Data & Konfirmasi &rarr;</button>
                     </div>
                 </div>
 
@@ -845,6 +747,59 @@
             window.showStep(parseInt(savedStep));
         }
     });
+
+    // --- 5. LOGIKA TOGGLE ORTU / WALI (Permintaan Pak Putra) ---
+    function toggleWali(isWali) {
+        const secOrtu = document.getElementById('section-ortu');
+        const secWali = document.getElementById('section-wali');
+        
+        const inputsOrtu = document.querySelectorAll('.input-ortu');
+        const inputsWali = document.querySelectorAll('.input-wali');
+
+        if (isWali) {
+            // Mode Wali: Sembunyikan Ortu, Munculkan Wali
+            secOrtu.classList.add('hidden');
+            secWali.classList.remove('hidden');
+
+            // Matikan 'required' di Ortu agar bisa submit
+            inputsOrtu.forEach(el => el.removeAttribute('required'));
+            
+            // Nyalakan 'required' di Wali
+            inputsWali.forEach(el => el.setAttribute('required', 'required'));
+        } else {
+            // Mode Ortu: Sembunyikan Wali, Munculkan Ortu
+            secOrtu.classList.remove('hidden');
+            secWali.classList.add('hidden');
+
+            // Nyalakan 'required' di Ortu (Field tertentu saja yg wajib)
+            // Note: Hati-hati, tidak semua field ortu wajib. 
+            // Kita kembalikan logic required sesuai HTML awal.
+            // Cara cepat: Set required hanya ke nama & pekerjaan (sesuai form awal)
+            document.getElementsByName('nama_ayah')[0].setAttribute('required', 'required');
+            document.getElementsByName('nama_ibu')[0].setAttribute('required', 'required');
+            document.getElementsByName('pekerjaan_ayah')[0].setAttribute('required', 'required');
+            document.getElementsByName('pekerjaan_ibu')[0].setAttribute('required', 'required');
+            document.getElementsByName('tahun_lahir_ayah')[0].setAttribute('required', 'required');
+            document.getElementsByName('tahun_lahir_ibu')[0].setAttribute('required', 'required');
+
+            // Matikan 'required' di Wali
+            inputsWali.forEach(el => el.removeAttribute('required'));
+        }
+    }
+
+    // Jalankan sekali saat load untuk memastikan status awal
+    // (Misal saat edit data dan ternyata dia mode Wali)
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cek apakah ada data wali tersimpan? Kalau ada, auto switch ke mode wali
+        const adaWali = document.querySelector('input[name="nama_wali"]').value !== "";
+        if(adaWali) {
+            document.querySelector('input[value="wali"]').checked = true;
+            toggleWali(true);
+        } else {
+            toggleWali(false); // Default Ortu
+        }
+    });
+
 </script>
 
 @endsection
