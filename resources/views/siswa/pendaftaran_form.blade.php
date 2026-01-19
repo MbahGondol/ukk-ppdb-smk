@@ -97,14 +97,14 @@
         <div class="p-8 md:p-10">
             
             @php
-            // Cek apakah ada data siswa (Mode Edit) atau tidak (Mode Daftar Baru)
-            $isEdit = isset($calonSiswa) && $calonSiswa;
-            
-            // Tentukan URL tujuan: ke 'update' jika edit, ke 'store' jika baru
-            $urlAction = $isEdit 
-                ? route('siswa.pendaftaran.update', $calonSiswa->id) 
-                : route('siswa.pendaftaran.store');
-        @endphp
+                // Cek apakah ada data siswa (Mode Edit) atau tidak (Mode Daftar Baru)
+                $isEdit = isset($calonSiswa) && $calonSiswa;
+                
+                // Tentukan URL tujuan: ke 'update' jika edit, ke 'store' jika baru
+                $urlAction = $isEdit 
+                    ? route('siswa.pendaftaran.update', $calonSiswa->id) 
+                    : route('siswa.pendaftaran.store');
+            @endphp
 
         <form action="{{ $urlAction }}" method="POST" id="pendaftaranForm">
             @csrf
@@ -153,8 +153,8 @@
                                     
                                     // Cek apakah ini jurusan siswa saat ini?
                                     $isMyChoice = $calonSiswa && 
-                                                $calonSiswa->jurusan_id == $jtk->jurusan_id && 
-                                                $calonSiswa->tipe_kelas_id == $jtk->tipe_kelas_id;
+                                                  $calonSiswa->jurusan_id == $jtk->jurusan_id && 
+                                                  $calonSiswa->tipe_kelas_id == $jtk->tipe_kelas_id;
 
                                     // Disable jika penuh KECUALI ini adalah pilihan siswa itu sendiri (sedang diedit)
                                     $isDisabled = $sisa <= 0 && !$isMyChoice;
@@ -171,63 +171,67 @@
                         </select>
                     </div>
 
-                    <div class="col-span-1">
-                        <label class="required-label">NISN</label>
-                        <input type="text" 
-                            name="nisn" 
-                            value="{{ old('nisn', $calonSiswa?->nisn) }}" 
-                            required 
-                            class="form-control-lg" 
-                            placeholder="10 digit angka"
-                            inputmode="numeric" 
-                            pattern="[0-9]*" 
-                            minlength="10" 
-                            maxlength="10"
-                            oninput="this.value = this.value.replace(/[^0-9]/g, '');" 
-                            title="NISN harus terdiri dari 10 digit angka">
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div> 
+                            <label class="required-label font-bold text-gray-700">NISN</label>
+                            <input type="text" 
+                                name="nisn" 
+                                value="{{ old('nisn', $calonSiswa?->nisn) }}" 
+                                required 
+                                class="form-control-lg font-mono tracking-wide"
+                                placeholder="10 digit angka"
+                                inputmode="numeric" 
+                                pattern="[0-9]*" 
+                                minlength="10" 
+                                maxlength="10"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                        </div>
 
-                    <div class="col-span-1">
-                        <label class="required-label">NIK Siswa</label>
-                        <input type="text" 
-                            name="nik" 
-                            value="{{ old('nik', $calonSiswa?->nik) }}" 
-                            required 
-                            class="form-control-lg" 
-                            placeholder="16 digit angka sesuai KK"
-                            inputmode="numeric" 
-                            pattern="[0-9]*" 
-                            minlength="16" 
-                            maxlength="16"
-                            oninput="this.value = this.value.replace(/[^0-9]/g, '');"
-                            title="NIK harus terdiri dari 16 digit angka">
-                    </div>
+                        <div>
+                            <label class="required-label font-bold text-gray-700">NIK Siswa</label>
+                            <input type="text" 
+                                name="nik" 
+                                value="{{ old('nik', $calonSiswa?->nik) }}" 
+                                required 
+                                class="form-control-lg font-mono tracking-wide" 
+                                placeholder="16 digit angka sesuai KK"
+                                inputmode="numeric" 
+                                pattern="[0-9]*" 
+                                minlength="16" 
+                                maxlength="16"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                        </div>
+
+                        {{-- BARIS 2: NAMA LENGKAP (Full Width) --}}
                         <div class="md:col-span-2">
-                            <label class="required-label">Nama Lengkap (Sesuai Ijazah)</label>
+                            <label class="required-label font-bold text-gray-700">Nama Lengkap (Sesuai Ijazah)</label>
                             <input type="text" name="nama_lengkap" value="{{ old('nama_lengkap', $calonSiswa?->nama_lengkap) }}" required class="form-control-lg uppercase" placeholder="Nama lengkap tanpa gelar">
                         </div>
                         
-                        <div class="col-span-1">
-                            <label class="required-label">Tempat Lahir</label>
-                            <input type="text" name="tempat_lahir" value="{{ old('tempat_lahir', $calonSiswa?->tempat_lahir) }}" required class="form-control-lg">
+                        {{-- BARIS 3: TTL (Logis berdampingan) --}}
+                        <div>
+                            <label class="required-label font-bold text-gray-700">Tempat Lahir</label>
+                            <input type="text" name="tempat_lahir" value="{{ old('tempat_lahir', $calonSiswa?->tempat_lahir) }}" required class="form-control-lg" placeholder="Kota kelahiran">
                         </div>
-                        <div class="col-span-1">
-                            <label class="required-label">Tanggal Lahir</label>
-                            <input type="date" name="tanggal_lahir" value="{{ old('tanggal_lahir', $calonSiswa?->tanggal_lahir ? \Carbon\Carbon::parse($calonSiswa->tanggal_lahir)->format('Y-m-d') : '') }}" required class="form-control-lg">
+                        <div>
+                            <label class="required-label font-bold text-gray-700">Tanggal Lahir</label>
+                            <input type="date" name="tanggal_lahir" value="{{ old('tanggal_lahir', $calonSiswa?->tanggal_lahir ? \Carbon\Carbon::parse($calonSiswa->tanggal_lahir)->format('Y-m-d') : '') }}" required class="form-control-lg cursor-pointer">
                         </div>
                         
-                        <div class="col-span-1">
-                            <label class="required-label">Jenis Kelamin</label>
-                            <select name="jenis_kelamin" required class="form-control-lg">
+                        {{-- BARIS 4: JK & AGAMA --}}
+                        <div>
+                            <label class="required-label font-bold text-gray-700">Jenis Kelamin</label>
+                            <select name="jenis_kelamin" required class="form-control-lg cursor-pointer bg-white">
                                 <option value="">- Pilih -</option>
                                 <option value="Laki-laki" {{ old('jenis_kelamin', $calonSiswa?->jenis_kelamin) == 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option>
                                 <option value="Perempuan" {{ old('jenis_kelamin', $calonSiswa?->jenis_kelamin) == 'Perempuan' ? 'selected' : '' }}>Perempuan</option>
                             </select>
                         </div>
-                        <div class="col-span-1">
-                            <label class="required-label">Agama</label>
-                            <select name="agama" required class="form-control-lg">
+                        <div>
+                            <label class="required-label font-bold text-gray-700">Agama</label>
+                            <select name="agama" required class="form-control-lg cursor-pointer bg-white">
                                 <option value="Islam" {{ old('agama', $calonSiswa?->agama) == 'Islam' ? 'selected' : '' }}>Islam</option>
+                                {{-- Option lainnya tetap sama --}}
                                 <option value="Kristen" {{ old('agama', $calonSiswa?->agama) == 'Kristen' ? 'selected' : '' }}>Kristen</option>
                                 <option value="Katolik" {{ old('agama', $calonSiswa?->agama) == 'Katolik' ? 'selected' : '' }}>Katolik</option>
                                 <option value="Hindu" {{ old('agama', $calonSiswa?->agama) == 'Hindu' ? 'selected' : '' }}>Hindu</option>
@@ -236,27 +240,29 @@
                             </select>
                         </div>
 
-                        <div class="col-span-1">
-                            <label class="required-label">No. HP / WA Siswa</label>
+                        {{-- BARIS 5: Kontak & Asal Sekolah --}}
+                        <div>
+                            <label class="required-label font-bold text-gray-700">No. HP / WA Siswa</label>
                             <input type="text" 
                                 name="no_hp" 
                                 value="{{ old('no_hp', $calonSiswa?->no_hp) }}" 
                                 required 
-                                class="form-control-lg" 
+                                class="form-control-lg font-mono" 
                                 placeholder="08xxxxxxxxxx"
                                 inputmode="numeric" 
                                 pattern="[0-9]*"
                                 minlength="10" 
                                 maxlength="13"
-                                oninput="this.value = this.value.replace(/[^0-9]/g, '');"
-                                title="Nomor HP harus berupa angka (10-13 digit)">
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                         </div>
-                        <div class="col-span-1">
-                            <label class="required-label">Asal Sekolah (SMP/MTs)</label>
-                            <input type="text" name="asal_sekolah" value="{{ old('asal_sekolah', $calonSiswa?->asal_sekolah) }}" required class="form-control-lg">
+                        <div>
+                            <label class="required-label font-bold text-gray-700">Asal Sekolah (SMP/MTs)</label>
+                            <input type="text" name="asal_sekolah" value="{{ old('asal_sekolah', $calonSiswa?->asal_sekolah) }}" required class="form-control-lg" placeholder="Nama sekolah asal">
                         </div>
-                        
-                        <div class="md:col-span-2 grid grid-cols-2 md:grid-cols-5 gap-4 bg-gray-50 p-6 rounded-xl border border-gray-200 mt-2">
+
+                    </div>    
+
+                        <div class="mt-6 md:col-span-2 grid grid-cols-2 md:grid-cols-5 gap-4 bg-gray-50 p-6 rounded-xl border border-gray-200">
                             <div>
                                 <label class="required-label">Thn Lulus</label>
                                 <input type="number" name="tahun_lulus" value="{{ old('tahun_lulus', $calonSiswa?->tahun_lulus) }}" required class="form-control-lg text-center" placeholder="2025">
@@ -278,51 +284,74 @@
                                 <input type="number" name="berat_badan" value="{{ old('berat_badan', $calonSiswa?->berat_badan) }}" class="form-control-lg text-center">
                             </div>
                         </div>
-                    </div>
 
-                    <div class="mt-10 flex justify-end">
-                        <button type="button" onclick="nextStep(2)" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition flex items-center gap-3 font-semibold text-lg">
+                        <div class="mt-10 flex justify-end">
+                            <button type="button" onclick="nextStep(2)" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition flex items-center gap-3 font-semibold text-lg">
                             Lanjut ke Alamat <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </button>
-                    </div>
+                        </div>
                 </div>
 
                 <div id="step-2" class="step-content">
                     <div class="mb-8 pb-4 border-b border-gray-100">
                         <h3 class="text-xl font-bold text-gray-800">Alamat Tempat Tinggal</h3>
-                        <p class="text-gray-500 text-sm mt-1">Isi sesuai dengan Kartu Keluarga (KK).</p>
+                        <p class="text-gray-500 text-sm mt-1">Isi data domisili sesuai dengan Kartu Keluarga (KK) terbaru.</p>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                        <div class="md:col-span-2">
-                            <label class="required-label">Alamat Lengkap (Nama Jalan, Gang, Nomor Rumah)</label>
-                            <textarea name="alamat" rows="3" required class="form-control-lg" placeholder="Contoh: Jl. Merpati No. 45, Dsn. Krajan">{{ old('alamat', $calonSiswa?->alamat) }}</textarea>
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">                       
+                        {{-- ALAMAT JALAN --}}
+                        <div class="md:col-span-12">
+                            <label class="required-label font-bold text-gray-700 mb-1.5">Alamat Lengkap (Jalan/Gang)</label>
+                            <textarea name="alamat" rows="2" required class="form-control-lg" placeholder="Contoh: Jl. Merpati No. 45">{{ old('alamat', $calonSiswa?->alamat) }}</textarea>
                         </div>
                         
-                        <div>
-                            <label class="required-label">RT / RW</label>
-                            <input type="text" name="rt_rw" value="{{ old('rt_rw', $calonSiswa?->rt_rw) }}" required class="form-control-lg" placeholder="Contoh: 005 / 002">
-                        </div>
-                        
-                        <div>
-                            <label class="required-label">Desa / Kelurahan</label>
-                            <input type="text" name="desa_kelurahan" value="{{ old('desa_kelurahan', $calonSiswa?->desa_kelurahan) }}" required class="form-control-lg">
+                        {{-- RT / RW --}}
+                        <div class="md:col-span-3"> 
+                            <label class="required-label font-bold text-gray-700 mb-1.5">RT / RW</label>
+                            <input type="text" name="rt_rw" value="{{ old('rt_rw', $calonSiswa?->rt_rw) }}" required class="form-control-lg font-mono text-center" placeholder="001 / 005">
                         </div>
 
-                        <div>
-                            <label class="required-label">Kecamatan</label>
-                            <input type="text" name="kecamatan" value="{{ old('kecamatan', $calonSiswa?->kecamatan) }}" required class="form-control-lg">
+                        {{-- PROVINSI (Baru) --}}
+                        <div class="md:col-span-5">
+                            <label class="required-label font-bold text-gray-700 mb-1.5">Provinsi</label>
+                            <select id="select-provinsi" class="form-control-lg bg-white" required>
+                                <option value="">Pilih Provinsi...</option>
+                            </select>
+                            <input type="hidden" name="provinsi" id="input-provinsi" value="{{ old('provinsi', $calonSiswa?->provinsi) }}">
                         </div>
 
-                        <div>
-                            <label class="required-label">Kota / Kabupaten</label>
-                            <input type="text" name="kota_kab" value="{{ old('kota_kab', $calonSiswa?->kota_kab) }}" required class="form-control-lg">
+                        {{-- KOTA / KAB (Otomatis) --}}
+                        <div class="md:col-span-4">
+                            <label class="required-label font-bold text-gray-700 mb-1.5">Kota / Kabupaten</label>
+                            <select id="select-kota" class="form-control-lg bg-gray-100" disabled required>
+                                <option value="">Pilih Provinsi Dulu...</option>
+                            </select>
+                            <input type="hidden" name="kota_kab" id="input-kota" value="{{ old('kota_kab', $calonSiswa?->kota_kab) }}">
                         </div>
 
-                        <div>
-                            <label class="required-label">Kode Pos</label>
-                            <input type="number" name="kode_pos" value="{{ old('kode_pos', $calonSiswa?->kode_pos) }}" required class="form-control-lg">
+                        {{-- KECAMATAN (Otomatis) --}}
+                        <div class="md:col-span-4">
+                            <label class="required-label font-bold text-gray-700 mb-1.5">Kecamatan</label>
+                            <select id="select-kecamatan" class="form-control-lg bg-gray-100" disabled required>
+                                <option value="">Pilih Kota Dulu...</option>
+                            </select>
+                            <input type="hidden" name="kecamatan" id="input-kecamatan" value="{{ old('kecamatan', $calonSiswa?->kecamatan) }}">
                         </div>
+
+                        {{-- DESA / KELURAHAN (Otomatis) --}}
+                        <div class="md:col-span-4"> 
+                            <label class="required-label font-bold text-gray-700 mb-1.5">Desa / Kelurahan</label>
+                            <select id="select-desa" class="form-control-lg bg-gray-100" disabled required>
+                                <option value="">Pilih Kecamatan Dulu...</option>
+                            </select>
+                            <input type="hidden" name="desa_kelurahan" id="input-desa" value="{{ old('desa_kelurahan', $calonSiswa?->desa_kelurahan) }}">
+                        </div>
+
+                        {{-- KODE POS --}}
+                        <div class="md:col-span-4">
+                            <label class="required-label font-bold text-gray-700 mb-1.5">Kode Pos</label>
+                            <input type="number" name="kode_pos" value="{{ old('kode_pos', $calonSiswa?->kode_pos) }}" required class="form-control-lg font-mono tracking-wider" placeholder="5 digit">
+                        </div>                      
                     </div>
 
                     <div class="mt-10 flex justify-between">
@@ -585,50 +614,237 @@
 </div>
 
 <script>
-    let currentStep = 1;
-    const totalSteps = 4;
+    document.addEventListener('DOMContentLoaded', async function() {
 
-    function showStep(step) {
-        document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.step-badge').forEach(el => el.classList.remove('active'));
-
-        document.getElementById('step-' + step).classList.add('active');
+        // --- 0. AUTO-RESTORE DRAFT (ANTI-REFRESH) ---
+        const formId = 'pendaftaranForm';
         
-        for (let i = 1; i <= step; i++) {
-            document.getElementById('badge-' + i).classList.add('active');
+        // Fungsi Simpan Draft saat ngetik
+        function saveDraft() {
+            const formData = new FormData(document.getElementById(formId));
+            const data = {};
+            formData.forEach((value, key) => data[key] = value);
+            // Simpan hidden inputs untuk wilayah juga
+            data['provinsi'] = document.getElementById('input-provinsi').value;
+            data['kota_kab'] = document.getElementById('input-kota').value;
+            data['kecamatan'] = document.getElementById('input-kecamatan').value;
+            data['desa_kelurahan'] = document.getElementById('input-desa').value;
+            
+            localStorage.setItem('ppdb_draft_data', JSON.stringify(data));
         }
-        
-        currentStep = step;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
 
-    function nextStep(targetStep) {
-        const currentDiv = document.getElementById('step-' + currentStep);
-        const inputs = currentDiv.querySelectorAll('input, select, textarea');
-        
-        let isValid = true;
-        
-        for (const input of inputs) {
-            if (!input.checkValidity()) {
-                input.reportValidity();
-                isValid = false;
+        // Event Listener untuk Auto-Save (Setiap ada perubahan)
+        document.getElementById(formId).addEventListener('input', saveDraft);
+        document.getElementById(formId).addEventListener('change', saveDraft);
+
+        // Fungsi Restore Draft saat halaman dimuat
+        function restoreDraft() {
+            const raw = localStorage.getItem('ppdb_draft_data');
+            if (!raw) return;
+
+            try {
+                const data = JSON.parse(raw);
                 
-                // Tambahkan border merah sementara untuk visual feedback
-                input.classList.add('border-red-500');
-                input.addEventListener('input', () => input.classList.remove('border-red-500'), {once: true});
-                
-                break;
+                // 1. Restore Input Biasa
+                Object.keys(data).forEach(key => {
+                    const input = document.querySelector(`[name="${key}"]`);
+                    if (input && input.type !== 'file' && input.type !== 'hidden') {
+                        input.value = data[key];
+                    }
+                });
+
+                // 2. Restore Hidden Input Wilayah (Agar logika API mu jalan)
+                if(data['provinsi']) document.getElementById('input-provinsi').value = data['provinsi'];
+                if(data['kota_kab']) document.getElementById('input-kota').value = data['kota_kab'];
+                if(data['kecamatan']) document.getElementById('input-kecamatan').value = data['kecamatan'];
+                if(data['desa_kelurahan']) document.getElementById('input-desa').value = data['desa_kelurahan'];
+
+            } catch (e) {
+                console.error("Gagal restore draft:", e);
             }
         }
 
-        if (isValid) {
-            showStep(targetStep);
-        }
-    }
+        // JALANKAN RESTORE SEBELUM LOGIKA LAIN!
+        restoreDraft();
 
-    function prevStep(targetStep) {
-        showStep(targetStep);
-    }
+        // HAPUS DRAFT SAAT SUBMIT SUKSES
+        document.getElementById(formId).addEventListener('submit', function() {
+            localStorage.removeItem('ppdb_draft_data');
+            localStorage.removeItem('ppdb_last_step_v1');
+        });
+
+        // --- 1. SETUP VARIABEL & URL ---
+        const baseUrlWilayah = "https://www.emsifa.com/api-wilayah-indonesia/api";
+        
+        const els = {
+            prov: { select: document.getElementById('select-provinsi'), input: document.getElementById('input-provinsi') },
+            kota: { select: document.getElementById('select-kota'),     input: document.getElementById('input-kota') },
+            kec:  { select: document.getElementById('select-kecamatan'), input: document.getElementById('input-kecamatan') },
+            desa: { select: document.getElementById('select-desa'),      input: document.getElementById('input-desa') }
+        };
+
+        // Helper: Cari Option ID berdasarkan Nama (Case Insensitive)
+        function findIdByName(selectEl, nameToFind) {
+            if (!nameToFind) return null;
+            const options = Array.from(selectEl.options);
+            const found = options.find(opt => {
+                const dataName = opt.getAttribute('data-name');
+                return dataName && dataName.toUpperCase() === nameToFind.toUpperCase();
+            });
+            return found ? found.value : null;
+        }
+
+        // Helper: Load Data API
+        async function loadData(url, selectEl, placeholder) {
+            selectEl.innerHTML = '<option value="">Loading...</option>';
+            selectEl.disabled = true;
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                let opts = `<option value="">${placeholder}</option>`;
+                data.forEach(item => {
+                    opts += `<option value="${item.id}" data-name="${item.name}">${item.name}</option>`;
+                });
+                selectEl.innerHTML = opts;
+                selectEl.disabled = false;
+            } catch (error) {
+                console.error("Gagal load data:", error);
+                selectEl.innerHTML = '<option value="">Gagal Memuat</option>';
+            }
+        }
+
+        // --- 2. LOGIKA UTAMA (LOAD & RESTORE) ---
+        
+        // A. Load Provinsi Pertama Kali
+        await loadData(`${baseUrlWilayah}/provinces.json`, els.prov.select, 'Pilih Provinsi...');
+
+        // B. RESTORE DATA (Sistem Anti-Amnesia)
+        const savedProv = els.prov.input.value;
+        const savedKota = els.kota.input.value;
+        const savedKec  = els.kec.input.value;
+        const savedDesa = els.desa.input.value;
+
+        if (savedProv) {
+            // 1. Pilih Provinsi
+            const provId = findIdByName(els.prov.select, savedProv);
+            if (provId) {
+                els.prov.select.value = provId;
+                
+                // 2. Load Kota
+                await loadData(`${baseUrlWilayah}/regencies/${provId}.json`, els.kota.select, 'Pilih Kota/Kab...');
+                
+                if (savedKota) {
+                    const kotaId = findIdByName(els.kota.select, savedKota);
+                    if (kotaId) {
+                        els.kota.select.value = kotaId;
+                        
+                        // 3. Load Kecamatan
+                        await loadData(`${baseUrlWilayah}/districts/${kotaId}.json`, els.kec.select, 'Pilih Kecamatan...');
+                        
+                        if (savedKec) {
+                            const kecId = findIdByName(els.kec.select, savedKec);
+                            if (kecId) {
+                                els.kec.select.value = kecId;
+
+                                // 4. Load Desa
+                                await loadData(`${baseUrlWilayah}/villages/${kecId}.json`, els.desa.select, 'Pilih Desa...');
+                                
+                                if (savedDesa) {
+                                    const desaId = findIdByName(els.desa.select, savedDesa);
+                                    if (desaId) els.desa.select.value = desaId;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- 3. EVENT LISTENERS (INTERAKSI USER) ---
+        
+        els.prov.select.addEventListener('change', async function() {
+            const id = this.value;
+            const name = this.options[this.selectedIndex].getAttribute('data-name');
+            els.prov.input.value = name || ''; // Simpan ke Hidden
+
+            // Reset anak-anaknya
+            els.kota.select.innerHTML = '<option value="">Pilih Provinsi Dulu...</option>'; els.kota.select.disabled = true; els.kota.input.value = '';
+            els.kec.select.innerHTML  = '<option value="">Pilih Kota Dulu...</option>'; els.kec.select.disabled = true; els.kec.input.value = '';
+            els.desa.select.innerHTML = '<option value="">Pilih Kecamatan Dulu...</option>'; els.desa.select.disabled = true; els.desa.input.value = '';
+
+            if(id) await loadData(`${baseUrlWilayah}/regencies/${id}.json`, els.kota.select, 'Pilih Kota/Kab...');
+        });
+
+        els.kota.select.addEventListener('change', async function() {
+            const id = this.value;
+            const name = this.options[this.selectedIndex].getAttribute('data-name');
+            els.kota.input.value = name || '';
+
+            els.kec.select.innerHTML  = '<option value="">Pilih Kota Dulu...</option>'; els.kec.select.disabled = true; els.kec.input.value = '';
+            els.desa.select.innerHTML = '<option value="">Pilih Kecamatan Dulu...</option>'; els.desa.select.disabled = true; els.desa.input.value = '';
+
+            if(id) await loadData(`${baseUrlWilayah}/districts/${id}.json`, els.kec.select, 'Pilih Kecamatan...');
+        });
+
+        els.kec.select.addEventListener('change', async function() {
+            const id = this.value;
+            const name = this.options[this.selectedIndex].getAttribute('data-name');
+            els.kec.input.value = name || '';
+
+            els.desa.select.innerHTML = '<option value="">Pilih Kecamatan Dulu...</option>'; els.desa.select.disabled = true; els.desa.input.value = '';
+
+            if(id) await loadData(`${baseUrlWilayah}/villages/${id}.json`, els.desa.select, 'Pilih Desa...');
+        });
+
+        els.desa.select.addEventListener('change', function() {
+            const name = this.options[this.selectedIndex].getAttribute('data-name');
+            els.desa.input.value = name || '';
+        });
+
+        // --- 4. STEPPER LOGIC (YANG ANDA PUNYA) ---       
+        window.currentStep = 1;
+
+        window.showStep = function(step) {
+            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.step-badge').forEach(el => el.classList.remove('active'));
+
+            document.getElementById('step-' + step).classList.add('active');
+            for (let i = 1; i <= step; i++) {
+                document.getElementById('badge-' + i).classList.add('active');
+            }
+            window.currentStep = step;
+            localStorage.setItem('ppdb_last_step_v1', step);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.nextStep = function(targetStep) {
+            const currentDiv = document.getElementById('step-' + window.currentStep);
+            if (!currentDiv) return; 
+
+            const inputs = currentDiv.querySelectorAll('input, select, textarea');
+            let isValid = true;
+            for (const input of inputs) {
+                if (!input.checkValidity()) {
+                    input.reportValidity();
+                    isValid = false;
+                    input.classList.add('border-red-500');
+                    input.addEventListener('input', () => input.classList.remove('border-red-500'), {once: true});
+                    break;
+                }
+            }
+            if (isValid) window.showStep(targetStep);
+        }
+
+        window.prevStep = function(targetStep) {
+            window.showStep(targetStep);
+        }
+
+        // Restore Step Terakhir
+        const savedStep = localStorage.getItem('ppdb_last_step_v1');
+        if (savedStep && parseInt(savedStep) > 1) {
+            window.showStep(parseInt(savedStep));
+        }
+    });
 </script>
 
 @endsection
