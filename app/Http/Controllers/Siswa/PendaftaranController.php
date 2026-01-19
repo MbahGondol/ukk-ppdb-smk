@@ -101,21 +101,20 @@ class PendaftaranController extends Controller
     /**
      * Menyimpan data pendaftaran (CREATE - Logic)
      */
-    public function store(StorePendaftaranRequest $request) // Type-hint Request Baru
+    public function store(StorePendaftaranRequest $request)
     {
         $user = Auth::user();
         $calonSiswa = $user->calonSiswa;
 
-        // 3. Simpan Data (Transaction)
         try {
             DB::transaction(function () use ($request, $user, $calonSiswa) {
                 
-                // 1. LOCK & LOAD (Ini kunci sebenarnya untuk integritas data)
+                // 1. LOCK & LOAD
                 $jurusan_tipe_kelas = JurusanTipeKelas::where('id', $request->jurusan_tipe_kelas_id)
-                                        ->lockForUpdate() 
-                                        ->firstOrFail();
+                                                        ->lockForUpdate() 
+                                                        ->firstOrFail();
 
-                // 2. HITUNG ULANG (Di dalam lock, ini aman)
+                // 2. HITUNG KUOTA
                 $terisi = CalonSiswa::where('jurusan_id', $jurusan_tipe_kelas->jurusan_id)
                                     ->where('tipe_kelas_id', $jurusan_tipe_kelas->tipe_kelas_id)
                                     ->whereNotIn('status_pendaftaran', [
@@ -124,7 +123,6 @@ class PendaftaranController extends Controller
                                     ])
                                     ->count();
 
-                // 3. LOGIKA TOLAK JIKA PENUH (Hanya jika pendaftar baru)
                 $sedangPindahJurusan = $calonSiswa && ($calonSiswa->jurusan_id != $jurusan_tipe_kelas->jurusan_id || $calonSiswa->tipe_kelas_id != $jurusan_tipe_kelas->tipe_kelas_id);
 
                 if ((!$calonSiswa || $sedangPindahJurusan) && $terisi >= $jurusan_tipe_kelas->kuota_kelas) {
@@ -134,6 +132,7 @@ class PendaftaranController extends Controller
                 $tahun_aktif = TahunAkademik::findOrFail($request->tahun_akademik_id);
                 $gelombang_aktif = Gelombang::findOrFail($request->gelombang_id);
 
+                // 3. SIAPKAN DATA SISWA
                 $data_siswa = [
                     'nisn' => $request->nisn,
                     'nik' => $request->nik,
@@ -173,34 +172,44 @@ class PendaftaranController extends Controller
                     $data_siswa
                 );
 
-                // Simpan Ortu
-                PenanggungJawab::updateOrCreate(
-                    ['calon_siswa_id' => $siswa_terupdate->id, 'hubungan' => 'Ayah'],
-                    [
-                        'nama_lengkap' => $request->nama_ayah,
-                        'nik' => $request->nik_ayah,
-                        'tahun_lahir' => $request->tahun_lahir_ayah,
-                        'pendidikan_terakhir' => $request->pendidikan_ayah,
-                        'pekerjaan' => $request->pekerjaan_ayah,
-                        'penghasilan_bulanan' => $request->penghasilan_ayah,
-                        'no_hp' => $request->nohp_ayah,
-                    ]
-                );
+                // 4. LOGIKA PENYIMPANAN PENANGGUNG JAWAB (DINAMIS)
+                $pilihTinggal = $request->tinggal_bersama; // 'ortu' atau 'wali'
 
-                PenanggungJawab::updateOrCreate(
-                    ['calon_siswa_id' => $siswa_terupdate->id, 'hubungan' => 'Ibu'],
-                    [
-                        'nama_lengkap' => $request->nama_ibu,
-                        'nik' => $request->nik_ibu,
-                        'tahun_lahir' => $request->tahun_lahir_ibu,
-                        'pendidikan_terakhir' => $request->pendidikan_ibu,
-                        'pekerjaan' => $request->pekerjaan_ibu,
-                        'penghasilan_bulanan' => $request->penghasilan_ibu,
-                        'no_hp' => $request->nohp_ibu,
-                    ]
-                );
+                if ($pilihTinggal === 'ortu') {
+                    // --- SIMPAN ORTU ---
+                    PenanggungJawab::updateOrCreate(
+                        ['calon_siswa_id' => $siswa_terupdate->id, 'hubungan' => 'Ayah'],
+                        [
+                            'nama_lengkap' => $request->nama_ayah,
+                            'nik' => $request->nik_ayah,
+                            'tahun_lahir' => $request->tahun_lahir_ayah,
+                            'pendidikan_terakhir' => $request->pendidikan_ayah,
+                            'pekerjaan' => $request->pekerjaan_ayah,
+                            'penghasilan_bulanan' => $request->penghasilan_ayah,
+                            'no_hp' => $request->nohp_ayah,
+                        ]
+                    );
 
-                if ($request->filled('nama_wali')) {
+                    PenanggungJawab::updateOrCreate(
+                        ['calon_siswa_id' => $siswa_terupdate->id, 'hubungan' => 'Ibu'],
+                        [
+                            'nama_lengkap' => $request->nama_ibu,
+                            'nik' => $request->nik_ibu,
+                            'tahun_lahir' => $request->tahun_lahir_ibu,
+                            'pendidikan_terakhir' => $request->pendidikan_ibu,
+                            'pekerjaan' => $request->pekerjaan_ibu,
+                            'penghasilan_bulanan' => $request->penghasilan_ibu,
+                            'no_hp' => $request->nohp_ibu,
+                        ]
+                    );
+                    
+                    // Hapus data Wali jika ada (agar bersih)
+                    PenanggungJawab::where('calon_siswa_id', $siswa_terupdate->id)
+                                    ->where('hubungan', 'Wali')
+                                    ->delete();
+
+                } else {
+                    // --- SIMPAN WALI ---
                     PenanggungJawab::updateOrCreate(
                         ['calon_siswa_id' => $siswa_terupdate->id, 'hubungan' => 'Wali'],
                         [
@@ -210,11 +219,6 @@ class PendaftaranController extends Controller
                             'pekerjaan' => $request->hubungan_wali,
                         ]
                     );
-                } else {
-                    // Cara 1 (Paling aman):
-                    PenanggungJawab::where('calon_siswa_id', $siswa_terupdate->id)
-                                ->where('hubungan', 'Wali')
-                                ->delete();
                 }
             });
 
