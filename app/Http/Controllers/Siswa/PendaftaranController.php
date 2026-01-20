@@ -148,6 +148,7 @@ class PendaftaranController extends Controller
                     'desa_kelurahan' => $request->desa_kelurahan,
                     'kecamatan' => $request->kecamatan,
                     'kota_kab' => $request->kota_kab,
+                    'provinsi' => $request->provinsi,
                     'kode_pos' => $request->kode_pos,
                     'tahun_lulus' => $request->tahun_lulus,
                     'anak_ke' => $request->anak_ke,
@@ -219,6 +220,10 @@ class PendaftaranController extends Controller
                             'pekerjaan' => $request->hubungan_wali,
                         ]
                     );
+
+                    PenanggungJawab::where('calon_siswa_id', $siswa_terupdate->id)
+                   ->whereIn('hubungan', ['Ayah', 'Ibu'])
+                   ->delete();
                 }
             });
 
@@ -231,4 +236,13 @@ class PendaftaranController extends Controller
         return redirect()->route('siswa.dashboard')
                         ->with('success', 'Biodata berhasil disimpan!');
     }
+
+    /**
+     * Memperbarui data pendaftaran (UPDATE - Logic)
+     */
+    public function update(StorePendaftaranRequest $request, $id)
+    {
+        return $this->store($request);
+    }
+
 }

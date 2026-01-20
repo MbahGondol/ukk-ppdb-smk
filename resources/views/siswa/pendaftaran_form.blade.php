@@ -308,7 +308,12 @@
                         {{-- RT / RW --}}
                         <div class="md:col-span-3"> 
                             <label class="required-label font-bold text-gray-700 mb-1.5">RT / RW</label>
-                            <input type="text" name="rt_rw" value="{{ old('rt_rw', $calonSiswa?->rt_rw) }}" required class="form-control-lg font-mono text-center" placeholder="001 / 005">
+                            <input type="text" name="rt_rw" value="{{ old('rt_rw', $calonSiswa?->rt_rw) }}" 
+                                required 
+                                class="form-control-lg font-mono text-center" 
+                                placeholder="001/005"
+                                maxlength="10"
+                                oninput="this.value = this.value.replace(/[^0-9\/]/g, '');">
                         </div>
 
                         {{-- PROVINSI (Baru) --}}
@@ -350,8 +355,14 @@
                         {{-- KODE POS --}}
                         <div class="md:col-span-4">
                             <label class="required-label font-bold text-gray-700 mb-1.5">Kode Pos</label>
-                            <input type="number" name="kode_pos" value="{{ old('kode_pos', $calonSiswa?->kode_pos) }}" required class="form-control-lg font-mono tracking-wider" placeholder="5 digit">
-                        </div>                      
+                            <input type="text" name="kode_pos" value="{{ old('kode_pos', $calonSiswa?->kode_pos) }}" 
+                                required 
+                                class="form-control-lg font-mono tracking-wider" 
+                                placeholder="5 digit"
+                                maxlength="5"
+                                inputmode="numeric"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 5);"> 
+                        </div>                    
                     </div>
 
                     <div class="mt-10 flex justify-between">
@@ -412,7 +423,11 @@
                                     <div class="grid grid-cols-2 gap-4">
                                         <div><label>Pendidikan</label>
                                             <select name="pendidikan_ayah" class="form-control-lg input-ortu">
-                                                <option value="SD">SD</option><option value="SMP">SMP</option><option value="SMA/SMK">SMA/SMK</option><option value="S1">S1</option><option value="S2">S2</option><option value="S3">S3</option>
+                                                @foreach(['SD', 'SMP', 'SMA/SMK', 'S1', 'S2', 'S3', 'Tidak Sekolah'] as $p)
+                                                    <option value="{{ $p }}" {{ old('pendidikan_ayah', $ayah?->pendidikan_terakhir) == $p ? 'selected' : '' }}>
+                                                        {{ $p }}
+                                                    </option>
+                                                @endforeach
                                             </select>
                                         </div>
                                         <div><label>Penghasilan</label><input type="number" name="penghasilan_ayah" value="{{ old('penghasilan_ayah', $ayah?->penghasilan_bulanan ? (int)$ayah->penghasilan_bulanan : '') }}" class="form-control-lg input-ortu"></div>
@@ -438,7 +453,11 @@
                                     <div class="grid grid-cols-2 gap-4">
                                         <div><label>Pendidikan</label>
                                             <select name="pendidikan_ibu" class="form-control-lg input-ortu">
-                                                <option value="SD">SD</option><option value="SMP">SMP</option><option value="SMA/SMK">SMA/SMK</option><option value="S1">S1</option><option value="S2">S2</option><option value="S3">S3</option>
+                                                @foreach(['SD', 'SMP', 'SMA/SMK', 'S1', 'S2', 'S3', 'Tidak Sekolah'] as $p)
+                                                    <option value="{{ $p }}" {{ old('pendidikan_ibu', $ibu?->pendidikan_terakhir) == $p ? 'selected' : '' }}>
+                                                        {{ $p }}
+                                                    </option>
+                                                @endforeach
                                             </select>
                                         </div>
                                         <div><label>Penghasilan</label><input type="number" name="penghasilan_ibu" value="{{ old('penghasilan_ibu', $ibu?->penghasilan_bulanan ? (int)$ibu->penghasilan_bulanan : '') }}" class="form-control-lg input-ortu"></div>
@@ -615,44 +634,58 @@
             }
         }
 
-        // --- 2. LOGIKA UTAMA (LOAD & RESTORE) ---
+        // --- 2. LOGIKA UTAMA (LOAD & RESTORE - DB AWARE) ---
         
-        // A. Load Provinsi Pertama Kali
+        // Fungsi helper untuk menunggu elemen select terisi
+        const waitForOptions = (selectEl) => {
+            return new Promise(resolve => {
+                const check = setInterval(() => {
+                    if (selectEl.options.length > 1) { 
+                        clearInterval(check);
+                        resolve();
+                    }
+                }, 100);
+                setTimeout(() => { clearInterval(check); resolve(); }, 5000); 
+            });
+        };
+
+        // A. Load Provinsi
         await loadData(`${baseUrlWilayah}/provinces.json`, els.prov.select, 'Pilih Provinsi...');
 
-        // B. RESTORE DATA (Sistem Anti-Amnesia)
-        const savedProv = els.prov.input.value;
-        const savedKota = els.kota.input.value;
-        const savedKec  = els.kec.input.value;
-        const savedDesa = els.desa.input.value;
+        // B. Cek Data Tersimpan (Prioritas: Draft LocalStorage -> DB Value)
+        // Kita ambil value dari input hidden yang sudah diisi oleh Blade (old/db)
+        const dbProv = els.prov.input.value;
+        const dbKota = els.kota.input.value;
+        const dbKec  = els.kec.input.value;
+        const dbDesa = els.desa.input.value;
 
-        if (savedProv) {
-            // 1. Pilih Provinsi
-            const provId = findIdByName(els.prov.select, savedProv);
+        if (dbProv) {
+            // Cari ID provinsi berdasarkan NAMA yang tersimpan
+            const provId = findIdByName(els.prov.select, dbProv);
             if (provId) {
                 els.prov.select.value = provId;
                 
-                // 2. Load Kota
+                // Trigger Load Kota
                 await loadData(`${baseUrlWilayah}/regencies/${provId}.json`, els.kota.select, 'Pilih Kota/Kab...');
                 
-                if (savedKota) {
-                    const kotaId = findIdByName(els.kota.select, savedKota);
+                if (dbKota) {
+                    const kotaId = findIdByName(els.kota.select, dbKota);
                     if (kotaId) {
                         els.kota.select.value = kotaId;
                         
-                        // 3. Load Kecamatan
+                        // Trigger Load Kecamatan
                         await loadData(`${baseUrlWilayah}/districts/${kotaId}.json`, els.kec.select, 'Pilih Kecamatan...');
                         
-                        if (savedKec) {
-                            const kecId = findIdByName(els.kec.select, savedKec);
+                        if (dbKec) {
+                            const kecId = findIdByName(els.kec.select, dbKec);
                             if (kecId) {
                                 els.kec.select.value = kecId;
-
-                                // 4. Load Desa
+                                
+                                // Trigger Load Desa
                                 await loadData(`${baseUrlWilayah}/villages/${kecId}.json`, els.desa.select, 'Pilih Desa...');
                                 
-                                if (savedDesa) {
-                                    const desaId = findIdByName(els.desa.select, savedDesa);
+                                if (dbDesa) {
+                                    const desaId = findIdByName(els.desa.select, dbDesa);
                                     if (desaId) els.desa.select.value = desaId;
                                 }
                             }

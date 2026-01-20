@@ -99,7 +99,8 @@ Route::controller(AuthController::class)->group(function () {
             // Pendaftaran
             Route::get('pendaftaran', [PendaftaranController::class, 'create'])->name('pendaftaran.create');
             Route::post('pendaftaran', [PendaftaranController::class, 'store'])->name('pendaftaran.store');
-            
+            Route::put('pendaftaran/{id}', [PendaftaranController::class, 'update'])->name('pendaftaran.update');
+
             // --- DOKUMEN ---
             Route::get('dokumen', [DokumenController::class, 'index'])->name('dokumen.index');
             Route::post('dokumen', [DokumenController::class, 'store'])->name('dokumen.store');

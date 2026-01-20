@@ -28,6 +28,7 @@ return new class extends Migration {
             $table->string('desa_kelurahan', 100)->nullable();
             $table->string('kecamatan', 100)->nullable();
             $table->string('kota_kab', 100)->nullable();
+            $table->string('provinsi', 100)->nullable();
             $table->string('kode_pos', 10)->nullable();
             $table->string('no_hp', 20)->nullable();
             

@@ -22,7 +22,7 @@ class StorePendaftaranRequest extends FormRequest
 
         // 1. RULES DASAR (Wajib untuk semua)
         $rules = [
-            'tinggal_bersama' => ['required', 'in:ortu,wali'], // Validasi radio button
+            'tinggal_bersama' => ['required', 'in:ortu,wali'], 
 
             'nisn' => [
                 'required', 'numeric', 'digits:10', 
@@ -41,24 +41,28 @@ class StorePendaftaranRequest extends FormRequest
             'asal_sekolah' => 'required|string|max:150',
             'jurusan_tipe_kelas_id' => 'required|exists:jurusan_tipe_kelas,id',
             'alamat' => 'required|string',
-            'rt_rw' => 'required|string|max:20',
+            'rt_rw' => ['required', 'string', 'max:10', 'regex:/^[0-9\/]+$/'],
             'desa_kelurahan' => 'required|string|max:100',
             'kecamatan' => 'required|string|max:100',
             'kota_kab' => 'required|string|max:100',
-            'kode_pos' => 'required|numeric|digits:5',
-            'tahun_lulus' => 'required|integer|digits:4',
+            'kode_pos' => ['required', 'numeric', 'digits:5'],
+            // Validasi Logis untuk Tahun Lulus
+            'tahun_lulus' => 'required|integer|digits:4|min:2000|max:'.(date('Y')+1),
             
-            'anak_ke' => 'nullable|integer',
-            'jumlah_saudara' => 'nullable|integer',
-            'tinggi_badan' => 'nullable|integer',
-            'berat_badan' => 'nullable|integer',
+            // Validasi Logis untuk Data Fisik & Saudara
+            'anak_ke' => 'nullable|integer|min:1|max:20',
+            'jumlah_saudara' => 'nullable|integer|min:0|max:20', 
+            'tinggi_badan' => 'nullable|integer|min:50|max:300',
+            'berat_badan' => 'nullable|integer|min:20|max:200',
+            
+            // Tambahkan validasi Provinsi agar tidak 'Amnesia' saat disimpan
+            'provinsi' => 'required|string|max:100',
         ];
 
-        // 2. LOGIKA KONDISIONAL (Sesuai Permintaan Pak Putra)
+        // 2. LOGIKA KONDISIONAL
         
         if ($tinggalBersama === 'wali') {
             // --- JIKA PILIH WALI ---
-            // Wali WAJIB, Ortu BOLEH KOSONG (Nullable)
             $rules['nama_wali']     = 'required|string|max:100';
             $rules['nohp_wali']     = ['required', 'numeric', 'digits_between:10,13'];
             $rules['hubungan_wali'] = 'required|string';
@@ -66,11 +70,9 @@ class StorePendaftaranRequest extends FormRequest
 
             $rules['nama_ayah'] = 'nullable|string';
             $rules['nama_ibu']  = 'nullable|string';
-            // Field ortu lain otomatis nullable jika tidak disebut required
             
         } else {
             // --- JIKA PILIH ORTU (Default) ---
-            // Ortu WAJIB, Wali BOLEH KOSONG
             $rules['nama_ayah'] = 'required|string|max:100';
             $rules['nama_ibu']  = 'required|string|max:100';
             $rules['pekerjaan_ayah'] = 'required|string';
@@ -81,6 +83,8 @@ class StorePendaftaranRequest extends FormRequest
             $rules['nik_ibu']  = ['nullable', 'numeric', 'digits:16'];
             $rules['nohp_ayah'] = ['nullable', 'numeric', 'digits_between:10,13'];
             $rules['nohp_ibu']  = ['nullable', 'numeric', 'digits_between:10,13'];
+            $rules['tahun_lahir_ayah'] = ['required', 'integer', 'digits:4', 'min:1920', 'max:'.date('Y')];
+            $rules['tahun_lahir_ibu']  = ['required', 'integer', 'digits:4', 'min:1920', 'max:'.date('Y')];
             
             $rules['nama_wali'] = 'nullable|string';
         }
