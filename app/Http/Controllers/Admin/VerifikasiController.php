@@ -42,7 +42,9 @@ class VerifikasiController extends Controller
     {
         $request->validate([
             'aksi' => 'required|in:terima,tolak,revisi',
-            'catatan_admin' => 'nullable|string|max:500'
+            'catatan_admin' => 'required_if:aksi,tolak,revisi|nullable|string|max:500'
+        ], [
+            'catatan_admin.required_if' => 'Alasan wajib diisi jika Anda menolak atau meminta revisi siswa!'
         ]);
         
         DB::transaction(function() use ($request, $id) {

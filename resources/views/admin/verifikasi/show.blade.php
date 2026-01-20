@@ -158,7 +158,7 @@
                                 <span class="block text-sm font-medium text-gray-900">{{ $dokumen->tipe_dokumen }}</span>
                                 <span class="block text-xs text-gray-500 truncate">{{ $dokumen->nama_asli_file }}</span>
                             </div>
-                            <a href="{{ route('dokumen.show', $dokumen->id) }}" target="_blank" class="flex-shrink-0 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold hover:bg-blue-200">
+                            <a href="{{ route('admin.dokumen.show', $dokumen->id) }}" target="_blank" class="flex-shrink-0 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold hover:bg-blue-200">
                                 Lihat
                             </a>
                         </div>

@@ -83,6 +83,8 @@ Route::controller(AuthController::class)->group(function () {
 
             // Rute untuk Laporan / Manajemen Semua Pendaftar
             Route::get('pendaftar', [PendaftarController::class, 'index'])->name('pendaftar.index');
+
+            Route::get('dokumen/{id}/preview', [DokumenController::class, 'show'])->name('dokumen.show');
             
         });
 
