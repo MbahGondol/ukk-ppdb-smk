@@ -15,7 +15,7 @@
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-gray-700 font-bold mb-2">Tanggal Mulai</label>
-                    <input type="date" name="tanggal_mulai" class="w-full border rounded px-3 py-2" required>
+                    <input type="date" name="tanggal_mulai" class="w-full border rounded px-3 py-2" min="{{ date('Y-m-d') }}" required>
                 </div>
                 <div>
                     <label class="block text-gray-700 font-bold mb-2">Tanggal Selesai</label>

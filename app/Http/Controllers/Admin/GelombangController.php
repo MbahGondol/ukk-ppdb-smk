@@ -32,6 +32,20 @@ class GelombangController extends Controller
      */
     public function store(Request $request)
     {
+
+        $request->validate([
+            'nama_gelombang' => 'required|string|max:255',
+            // 'today' memaksa tanggal harus hari ini atau masa depan
+            'tanggal_mulai'  => 'required|date|after_or_equal:today', 
+            // Tanggal selesai harus sesudah tanggal mulai
+            'tanggal_selesai'=> 'required|date|after:tanggal_mulai', 
+            'aktif'          => 'boolean'
+        ], [
+            // Custom pesan error biar user paham
+            'tanggal_mulai.after_or_equal' => 'Tanggal mulai tidak boleh di masa lalu!',
+            'tanggal_selesai.after'        => 'Tanggal selesai harus sesudah tanggal mulai!'
+        ]);
+
         // 1. Tampung hasil validasi ke variabel
         $validatedData = $request->validate([
             'nama_gelombang' => 'required|string|max:100',
@@ -62,6 +76,14 @@ class GelombangController extends Controller
      */
     public function update(Request $request, string $id)
     {
+
+        $request->validate([
+            'nama_gelombang' => 'required|string|max:255',
+            'tanggal_mulai'  => 'required|date',
+            'tanggal_selesai'=> 'required|date|after:tanggal_mulai',
+            'aktif'          => 'boolean'
+        ]);
+
         // 1. Tampung hasil validasi (Sama seperti di store)
         $validatedData = $request->validate([
             'nama_gelombang' => 'required|string|max:100',
