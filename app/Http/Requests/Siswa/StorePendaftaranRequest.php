@@ -91,4 +91,23 @@ class StorePendaftaranRequest extends FormRequest
 
         return $rules;
     }
+
+    /**
+     * Pesan kustom untuk validasi spesifik ini.
+     * Mengoreksi logika "Gunakan yang lain" menjadi instruksi yang benar.
+     */
+    public function messages(): array
+    {
+        return [
+            // Kustomisasi pesan unique khusus untuk NISN & NIK
+            'nisn.unique' => 'NISN ini sudah terdaftar di sistem. Jika Anda merasa belum pernah mendaftar, segera hubungi Panitia PPDB.',
+            'nik.unique'  => 'NIK ini sudah digunakan oleh pendaftar lain. Mohon cek kembali atau lapor ke operator sekolah.',
+            
+            // Validasi kondisional Ortu/Wali
+            'nama_wali.required' => 'Karena Anda memilih tinggal bersama Wali, Nama Wali wajib diisi.',
+            'nohp_wali.required' => 'Nomor HP Wali wajib dicantumkan untuk keperluan darurat.',
+            'nama_ayah.required' => 'Nama Ayah wajib diisi (kecuali Anda tinggal dengan Wali).',
+            'nama_ibu.required'  => 'Nama Ibu wajib diisi (kecuali Anda tinggal dengan Wali).',
+        ];
+    }
 }

@@ -92,4 +92,8 @@ return [
         'alamat'                => 'Alamat Lengkap',
         'no_hp'                 => 'Nomor HP / WhatsApp',
     ],
+
+    'failed'   => 'Identitas tersebut tidak cocok dengan data kami.',
+    'password' => 'Kata sandi yang Anda masukkan salah.',
+    'throttle' => 'Terlalu banyak upaya masuk. Silahkan coba lagi dalam :beberapa detik.',
 ];
