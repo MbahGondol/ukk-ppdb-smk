@@ -155,29 +155,30 @@
             </div>
         </div>
 
-        {{-- AREA CETAK BUKTI --}}
-        @if($calonSiswa->status_pendaftaran == 'Resmi Diterima')
-             <div class="bg-green-600 rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center justify-between text-white">
-                <div class="flex items-center mb-4 md:mb-0">
-                    <svg class="w-12 h-12 mr-4 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <div>
-                        <h3 class="text-xl font-bold">Selamat! Anda Diterima.</h3>
-                        <p class="text-green-100 text-sm">Silakan cetak bukti kelulusan untuk dibawa saat daftar ulang.</p>
-                    </div>
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6 border border-gray-100">
+            <div class="p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Dokumen Kelulusan</h3>
+                    <p class="text-sm text-gray-500">Unduh bukti penerimaan Anda setelah memenuhi syarat administrasi.</p>
                 </div>
-                
-                @if($calonSiswa->masih_punya_hutang)
-                    <button disabled class="bg-gray-400 text-white font-bold py-3 px-6 rounded-lg cursor-not-allowed" title="Lunasi pembayaran dulu">
-                        🔒 Lunasi Dulu
-                    </button>
-                @else
-                    <a href="{{ route('siswa.cetak.bukti') }}" target="_blank" class="bg-white text-green-700 font-bold py-3 px-6 rounded-lg hover:bg-gray-100 transition shadow-lg flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                        Cetak Bukti Diterima
-                    </a>
-                @endif
+
+                <div>
+                    @if(Auth::user()->calonSiswa->status_pendaftaran == 'Resmi Diterima')
+                        {{-- JIKA SUDAH LUNAS / 50% --}}
+                        <a href="{{ route('siswa.cetak.bukti') }}" target="_blank" class="inline-flex items-center px-6 py-3 bg-blue-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150 shadow-lg">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Cetak Surat Diterima
+                        </a>
+                    @else
+                        {{-- JIKA BELUM MENCAPAI TARGET --}}
+                        <button disabled class="inline-flex items-center px-6 py-3 bg-gray-300 border border-transparent rounded-lg font-semibold text-xs text-gray-500 uppercase tracking-widest cursor-not-allowed">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            Lunasi Minimal 50%
+                        </button>
+                    @endif
+                </div>
             </div>
-        @endif
+        </div>
 
     @endif
 </div>

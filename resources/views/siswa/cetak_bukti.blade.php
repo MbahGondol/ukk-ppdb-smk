@@ -21,6 +21,10 @@
 
         .info-box { border: 1px solid #000; padding: 10px; margin-bottom: 15px; }
 
+        /* INFO KEUANGAN TAMBAHAN */
+        .financial-box { border: 1px dashed #555; padding: 10px; margin-bottom: 20px; background-color: #f9f9f9; }
+        .financial-box .section-title { margin-top: 0; margin-bottom: 10px; font-size: 10pt; }
+
         .status-box { 
             border: 2px solid #000; 
             padding: 10px; 
@@ -74,6 +78,43 @@
             </tr>
         </table>
     </div>
+
+    {{-- 🔥 RINGKASAN KEUANGAN 🔥 --}}
+    @php
+        $rencana = $siswa->rencanaPembayaran;
+        $total_biaya = $rencana ? $rencana->total_nominal_biaya : 0;
+        $sudah_bayar = $rencana ? $rencana->total_sudah_dibayar : 0;
+        $sisa_tagihan = $total_biaya - $sudah_bayar;
+        $status_lunas = $sisa_tagihan <= 0 ? 'LUNAS' : 'BELUM LUNAS';
+    @endphp
+
+    <div class="financial-box">
+        <div class="section-title">INFORMASI KEUANGAN</div>
+        <table style="margin-bottom: 0;">
+            <tr>
+                <td class="label-col">Total Biaya</td>
+                <td class="colon-col">:</td>
+                <td>Rp {{ number_format($total_biaya, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <td class="label-col">Total Terbayar</td>
+                <td class="colon-col">:</td>
+                <td>Rp {{ number_format($sudah_bayar, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <td class="label-col">Sisa Tagihan</td>
+                <td class="colon-col">:</td>
+                <td>
+                    <strong>Rp {{ number_format($sisa_tagihan, 0, ',', '.') }}</strong>
+                    <span style="margin-left: 10px; font-size: 8pt; padding: 2px 5px; border: 1px solid #000; border-radius: 3px; font-weight: bold; {{ $status_lunas == 'LUNAS' ? 'background-color: #ddd;' : 'background-color: #fff;' }}">
+                        {{ $status_lunas }}
+                    </span>
+                </td>
+            </tr>
+        </table>
+    </div>
+    {{-- 🔥 END BAGIAN BARU 🔥 --}}
+
 
     <div class="section-title">A. DATA CALON SISWA</div>
     <table>
@@ -165,6 +206,8 @@
         2. Harap membawa bukti ini beserta dokumen asli saat melakukan verifikasi fisik atau pengambilan seragam.
         <br>
         3. Segala bentuk pemalsuan data akan mengakibatkan pembatalan penerimaan siswa.
+        <br>
+        4. Jika status keuangan "BELUM LUNAS", harap selesaikan administrasi sebelum pengambilan seragam.
     </div>
 
     <div class="footer-sign">

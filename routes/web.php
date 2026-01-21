@@ -83,6 +83,7 @@ Route::controller(AuthController::class)->group(function () {
             Route::resource('jenis-biaya', JenisBiayaController::class);
             Route::resource('biaya', BiayaController::class);
 
+            // VERIFIKASI SISWA
             Route::get('verifikasi', [VerifikasiController::class, 'index'])->name('verifikasi.index');
             Route::get('verifikasi/{id}', [VerifikasiController::class, 'show'])->name('verifikasi.show');
             Route::post('verifikasi/update-status/{id}', [VerifikasiController::class, 'updateStatus'])->name('verifikasi.updateStatus');

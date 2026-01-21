@@ -16,45 +16,43 @@ use App\Models\BuktiPembayaran;
 use App\Models\BiayaPerJurusanTipeKelas;
 use Illuminate\Support\Facades\Hash;
 use Faker\Factory as Faker;
+use Carbon\Carbon;
 
 class SiswaSeeder extends Seeder
 {
     public function run(): void
     {
-        $faker = Faker::create('id_ID'); // Pakai Faker Indonesia
+        $faker = Faker::create('id_ID');
         
-        // Ambil Data Master
         $tahun = TahunAkademik::where('aktif', true)->first();
         $gelombang = Gelombang::first();
-        
-        // Ambil semua opsi jurusan untuk dipilih acak
         $pilihan_jurusan = JurusanTipeKelas::all();
 
-        // Loop membuat 15 Siswa
-        for ($i = 1; $i <= 15; $i++) {
-            
-            // 1. Pilih Jurusan Acak
-            $jurusan_terpilih = $pilihan_jurusan->random();
+        if (!$tahun || !$gelombang || $pilihan_jurusan->isEmpty()) {
+            $this->command->error('Data Master kosong. Seeder berhenti.');
+            return;
+        }
 
-            // 2. Tentukan Status secara Acak
-            // Kita buat probabilitas agar datanya variatif
+        for ($i = 1; $i <= 15; $i++) {
+            $email = "siswa{$i}@gmail.com";
+            if (User::where('email', $email)->exists()) continue;
+
+            $jurusan_terpilih = $pilihan_jurusan->random();
             $statuses = ['Melengkapi Berkas', 'Terdaftar', 'Ditolak', 'Resmi Diterima'];
             $status = $statuses[array_rand($statuses)];
 
-            // 3. Buat User
             $user = User::create([
                 'name' => $faker->name,
-                'email' => "siswa{$i}@gmail.com", // siswa1@gmail.com, dst
-                'password' => Hash::make('password'),
+                'email' => $email,
+                'password' => Hash::make('#Password123'),
+                'email_verified_at' => Carbon::now(),
             ]);
 
-            // Assign Role Spatie
             $user->assignRole('siswa');
 
-            // 4. Buat Calon Siswa
             $calonSiswa = CalonSiswa::create([
                 'user_id' => $user->id,
-                'no_pendaftaran' => date('Y') . $gelombang->id . $jurusan_terpilih->jurusan_id . str_pad($i, 4, '0', STR_PAD_LEFT),
+                'no_pendaftaran' => date('Y') . sprintf('%02d', $gelombang->id) . sprintf('%02d', $jurusan_terpilih->jurusan_id) . sprintf('%04d', $i),
                 'nisn' => $faker->unique()->numerify('##########'),
                 'nik' => $faker->unique()->numerify('################'),
                 'nama_lengkap' => $user->name,
@@ -81,12 +79,13 @@ class SiswaSeeder extends Seeder
                 'tahun_akademik_id' => $tahun->id,
                 'gelombang_id' => $gelombang->id,
                 
+                // BARIS INI SUDAH DIHAPUS (Progres Pendaftaran)
+                
                 'status_pendaftaran' => $status,
-                'catatan_admin' => ($status == 'Ditolak') ? 'Data tidak valid, mohon perbaiki foto ijazah.' : null,
+                'catatan_admin' => ($status == 'Ditolak') ? 'Data tidak valid.' : null,
                 'tanggal_submit' => now()->subDays(rand(1, 10)),
             ]);
 
-            // 5. Buat Orang Tua (Wajib ada untuk semua)
             PenanggungJawab::create([
                 'calon_siswa_id' => $calonSiswa->id,
                 'hubungan' => 'Ayah',
@@ -103,47 +102,41 @@ class SiswaSeeder extends Seeder
                 'nik' => $faker->numerify('################'),
                 'pekerjaan' => 'Ibu Rumah Tangga',
                 'no_hp' => $faker->phoneNumber,
+                'penghasilan_bulanan' => 0
             ]);
 
-            // ============================================================
-            // LOGIKA TAMBAHAN: JIKA STATUS BUKAN "Melengkapi Berkas"
-            // Maka siswa ini dianggap SUDAH Upload Dokumen & Bayar
-            // ============================================================
             if ($status != 'Melengkapi Berkas') {
-                
-                // A. Buat Dummy Dokumen
                 $dokumens = ['Akte Kelahiran', 'Kartu Keluarga', 'Ijazah SMP', 'Foto Formal'];
                 foreach ($dokumens as $tipe) {
                     DokumenSiswa::create([
                         'calon_siswa_id' => $calonSiswa->id,
                         'tipe_dokumen' => $tipe,
-                        'file_path' => 'dummy/path/file.jpg', // File palsu, hanya agar tidak error di view
+                        'file_path' => 'dummy/path/file.jpg',
                         'nama_asli_file' => 'scan_' . strtolower(str_replace(' ', '_', $tipe)) . '.jpg',
                         'status_verifikasi' => ($status == 'Resmi Diterima') ? 'Valid' : 'Pending',
                     ]);
                 }
 
-                // B. Buat Tagihan & Pembayaran
-                // Hitung total tagihan dulu
                 $biaya = BiayaPerJurusanTipeKelas::where('jurusan_tipe_kelas_id', $jurusan_terpilih->id)->sum('nominal');
-                
+                if ($biaya == 0) $biaya = 5000000;
+                $total_sudah_dibayar = ($status == 'Resmi Diterima') ? $biaya : 1000000;
+                $status_tagihan = ($status == 'Resmi Diterima') ? 'Lunas' : 'Belum Lunas';
+
                 $rencana = RencanaPembayaran::create([
                     'calon_siswa_id' => $calonSiswa->id,
                     'total_nominal_biaya' => $biaya,
-                    'total_sudah_dibayar' => ($status == 'Resmi Diterima') ? $biaya : 1000000, // Lunas jika diterima, DP jika belum
-                    'status' => ($status == 'Resmi Diterima') ? 'Lunas' : 'Belum Lunas',
+                    'total_sudah_dibayar' => $total_sudah_dibayar,
+                    'status' => $status_tagihan,
                 ]);
 
-                // Buat Riwayat Transaksi
                 $pembayaran = PembayaranSiswa::create([
                     'rencana_pembayaran_id' => $rencana->id,
-                    'jumlah' => ($status == 'Resmi Diterima') ? $biaya : 1000000,
+                    'jumlah' => $total_sudah_dibayar,
                     'tanggal_pembayaran' => now(),
                     'metode' => 'Transfer Bank',
                     'status' => ($status == 'Resmi Diterima') ? 'Verified' : 'Pending',
                 ]);
 
-                // Buat Bukti Bayar
                 BuktiPembayaran::create([
                     'pembayaran_id' => $pembayaran->id,
                     'file_path' => 'dummy/path/bukti_transfer.jpg'
