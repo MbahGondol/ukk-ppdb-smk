@@ -18,19 +18,37 @@
 
         <form action="{{ route('admin.promo.update', $promo->id) }}" method="POST">
             @csrf
-            @method('PUT') <div class="mb-4">
+            @method('PUT') 
+            
+            <div class="mb-4">
                 <label class="block text-gray-700 font-bold mb-2">Nama Promo</label>
                 <input type="text" name="nama_promo" value="{{ old('nama_promo', $promo->nama_promo) }}" 
                        class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                        required>
             </div>
 
+            {{-- BAGIAN INI YANG DIMODIFIKASI --}}
             <div class="mb-4">
                 <label class="block text-gray-700 font-bold mb-2">Nominal Potongan (Rp)</label>
+                
+                {{-- Logic UI: Cek apakah sudah dipakai siswa --}}
+                @php
+                    $isUsed = $promo->calonSiswa()->count() > 0;
+                @endphp
+
                 <input type="number" name="potongan" value="{{ old('potongan', $promo->potongan) }}" 
-                       class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                       class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 
+                       {{ $isUsed ? 'bg-gray-200 cursor-not-allowed text-gray-500' : '' }}" 
+                       {{ $isUsed ? 'readonly' : '' }}
                        required>
+
+                @if($isUsed)
+                    <p class="text-red-500 text-sm mt-1 font-semibold">
+                        <i class="fas fa-lock"></i> Nilai terkunci karena sudah digunakan oleh {{ $promo->calonSiswa()->count() }} siswa.
+                    </p>
+                @endif
             </div>
+            {{-- SELESAI MODIFIKASI --}}
 
             <div class="mb-6">
                 <label class="block text-gray-700 font-bold mb-2">Deskripsi (Opsional)</label>

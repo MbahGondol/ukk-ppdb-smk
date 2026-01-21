@@ -47,6 +47,17 @@ class PromoController extends Controller
         ]);
 
         $promo = Promo::findOrFail($id);
+
+        // LOGIC PENYELAMAT: Cek apakah promo sudah dipakai siswa
+        if ($promo->calonSiswa()->exists()) {
+            // Jika nilai potongan yang dikirim beda dengan yang di database
+            if ($request->potongan != $promo->potongan) {
+                return redirect()->back()
+                    ->with('error', 'FATAL: Nilai potongan TIDAK BOLEH DIUBAH karena sudah digunakan oleh calon siswa. Silakan buat promo baru jika ingin nilai berbeda.')
+                    ->withInput();
+            }
+        }
+
         $promo->update($request->all());
 
         return redirect()->route('admin.promo.index')->with('success', 'Promo berhasil diperbarui.');
