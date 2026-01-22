@@ -53,6 +53,16 @@
                     </a>
                 </div>
             </div>
+
+            <div class="mb-4">
+                {!! NoCaptcha::display() !!}
+                @if ($errors->has('g-recaptcha-response'))
+                    <span class="text-red-500 text-sm">
+                        <strong>{{ $errors->first('g-recaptcha-response') }}</strong>
+                    </span>
+                @endif
+            </div>
+
             <div class="flex items-center justify-between">
                 <button type="submit" class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none">
                     Login
@@ -67,4 +77,6 @@
         </form>
     </div>
 </div>
+
+{!! NoCaptcha::renderJs() !!}
 @endsection

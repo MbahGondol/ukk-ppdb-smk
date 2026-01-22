@@ -43,6 +43,7 @@ class AuthController extends Controller
                     ->numbers()
                     ->symbols()
             ],
+            'g-recaptcha-response' => 'required|captcha'
         ]);
 
         // 2. Buat User
@@ -71,7 +72,10 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'], 
+            'g-recaptcha-response' => 'required|captcha'
         ]);
+
+        unset($credentials['g-recaptcha-response']);
 
         // 2. Cek Login & Remember Me
         if (Auth::attempt($credentials, $request->boolean('remember'))) {

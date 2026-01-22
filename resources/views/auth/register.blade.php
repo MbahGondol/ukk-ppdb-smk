@@ -51,6 +51,16 @@
                        class="w-full px-3 py-2 border rounded-lg text-gray-700 focus:outline-none focus:border-blue-500">
             </div>
             
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">Verifikasi Keamanan:</label>
+                {!! NoCaptcha::display() !!}
+                @if ($errors->has('g-recaptcha-response'))
+                    <span class="text-red-500 text-sm">
+                        <strong>Wajib dicentang! (Kamu robot?)</strong>
+                    </span>
+                @endif
+            </div>
+
             <div class="flex items-center justify-between">
                 <button type="submit" class="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none">
                     Register
@@ -60,8 +70,11 @@
                 <a href="{{ route('login') }}" class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800">
                     Sudah punya akun? Login
                 </a>
-            </p>
+            </p>            
         </form>
     </div>
 </div>
+
+{!! NoCaptcha::renderJs() !!}
+
 @endsection
