@@ -28,16 +28,21 @@ class DokumenController extends Controller
                     ->get()
                     ->keyBy('tipe_dokumen');
 
-        // DEFINISIKAN DOKUMEN WAJIB DI SINI
+        // DEFINISIKAN DOKUMEN WAJIB SECARA DINAMIS
         $daftarDokumen = [
             'Kartu Keluarga',
             'Akte Kelahiran',
             'Ijazah SMP',
-            'KTP Ayah',
-            'KTP Ibu',
-            'KTP Wali',
             'Foto Formal'
         ];
+
+        // Logika Dinamis untuk Controller
+        if ($calonSiswa->tinggal_bersama == 'Wali') {
+            $daftarDokumen[] = 'KTP Wali';
+        } else {
+            $daftarDokumen[] = 'KTP Ayah';
+            $daftarDokumen[] = 'KTP Ibu';
+        }
 
         // Kirim variabel $daftarDokumen ke View
         return view('siswa.dokumen', compact('calonSiswa', 'dokumen', 'daftarDokumen'));

@@ -159,4 +159,30 @@ class CalonSiswa extends Model
             default => 0,
         };
     }
+
+    /**
+     * Helper Cerdas: Cek apakah dokumen wajib sudah lengkap?
+     * Mengembalikan TRUE jika lengkap, FALSE jika ada yang kurang.
+     */
+    public function getIsDokumenLengkapAttribute(): bool
+    {
+        // 1. Definisi Wajib (Harus SAMA PERSIS dengan Controller)
+        $wajibDocs = ['Kartu Keluarga', 'Akte Kelahiran', 'Ijazah SMP', 'Foto Formal'];
+
+        // 2. Cek Kondisi Wali
+        if ($this->tinggal_bersama == 'Wali') {
+            $wajibDocs[] = 'KTP Wali';
+        } else {
+            $wajibDocs[] = 'KTP Ayah';
+            $wajibDocs[] = 'KTP Ibu';
+        }
+
+        // 3. Ambil yang sudah diupload (Pluck dari relasi dokumen)
+        $uploadedDocs = $this->dokumen->pluck('tipe_dokumen')->toArray();
+
+        // 4. Bandingkan
+        $kurang = array_diff($wajibDocs, $uploadedDocs);
+
+        return empty($kurang); 
+    }
 }

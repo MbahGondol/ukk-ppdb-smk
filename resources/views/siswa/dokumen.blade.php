@@ -51,26 +51,26 @@
 
         @foreach($daftarDokumen as $item)
             @php
-                // --- 1. LOGIKA STATUS WAJIB/OPSIONAL ---
-                $wajib = true; // Default semua wajib
-                $hidden = false; // Default semua muncul
+                $wajib = true; 
+                $hidden = false;
 
-                // LOGIKA: KTP Wali
+                // Cek Nilai Database untuk 'tinggal_bersama'
+                
                 if ($item == 'KTP Wali') {
-                    // Jika tinggal sama Ortu, KTP Wali jadi OPSIONAL (atau disembunyikan)
-                    if ($calonSiswa->tinggal_bersama == 'ortu') {
-                        $wajib = false; 
-                        // $hidden = true; // Uncomment baris ini jika ingin kartunya hilang total
+                    // Jika BUKAN Wali, sembunyikan KTP Wali
+                    if ($calonSiswa->tinggal_bersama != 'Wali') {
+                        $hidden = true; 
                     }
                 }
 
-                // LOGIKA: KTP Ayah & Ibu (Kebalikannya)
-                if (($item == 'KTP Ayah' || $item == 'KTP Ibu') && $calonSiswa->tinggal_bersama == 'wali') {
-                    // Jika tinggal sama Wali, KTP Ortu jadi OPSIONAL
-                    $wajib = false; 
+                if ($item == 'KTP Ayah' || $item == 'KTP Ibu') {
+                    // Jika Wali, sembunyikan KTP Ortu
+                    if ($calonSiswa->tinggal_bersama == 'Wali') {
+                        $hidden = true;
+                    }
                 }
 
-                // Skip jika diset hidden
+                // EKSEKUSI HILANGKAN CARD
                 if ($hidden) continue;
 
                 // --- 2. SETUP TAMPILAN ---

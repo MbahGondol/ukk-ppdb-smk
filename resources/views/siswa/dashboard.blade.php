@@ -121,16 +121,20 @@
 
             {{-- CARD 3: PEMBAYARAN (Conditional Logic) --}}
             <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition p-6 border-t-4 {{ $calonSiswa->masih_punya_hutang ? 'border-orange-500' : 'border-gray-300' }} flex flex-col h-full relative overflow-hidden">
-                {{-- Jika dokumen belum, beri overlay 'Locked' --}}
-                @if(!$dokumenUploaded)
-                    <div class="absolute inset-0 bg-gray-50 bg-opacity-90 flex items-center justify-center z-10 backdrop-blur-[1px]">
-                        <div class="text-center p-4">
-                            <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                            <span class="text-sm font-semibold text-gray-500">Selesaikan Upload Berkas Dulu</span>
+                
+                {{-- LOGIKA BARU: Cek Kelengkapan Dokumen via Model Accessor --}}
+                @if(!$calonSiswa->is_dokumen_lengkap)
+                    {{-- Overlay Tampilan Terkunci --}}
+                    <div class="absolute inset-0 bg-gray-50 bg-opacity-95 flex flex-col items-center justify-center z-20 backdrop-blur-[2px] cursor-not-allowed text-center p-4">
+                        <div class="p-3 bg-red-100 rounded-full mb-3 animate-pulse">
+                            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                         </div>
+                        <span class="text-sm font-bold text-gray-700">Menu Terkunci</span>
+                        <p class="text-xs text-red-500 mt-1 font-medium">Wajib upload semua dokumen dulu!</p>
                     </div>
                 @endif
 
+                {{-- Konten Card --}}
                 <div class="flex-1">
                     <div class="flex items-center mb-4">
                         <div class="p-3 {{ $calonSiswa->masih_punya_hutang ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-600' }} rounded-lg mr-4">
@@ -140,17 +144,30 @@
                     </div>
                     
                     @if($calonSiswa->masih_punya_hutang)
-                        <div class="bg-orange-50 text-orange-800 text-xs px-2 py-1 rounded inline-block mb-2 font-bold">
+                        <div class="bg-orange-50 text-orange-800 text-xs px-2 py-1 rounded inline-block mb-2 font-bold border border-orange-100">
                             ⚠️ Belum Lunas
                         </div>
+                    @else
+                        <div class="bg-green-50 text-green-800 text-xs px-2 py-1 rounded inline-block mb-2 font-bold border border-green-100">
+                            ✅ Lunas
+                        </div>
                     @endif
-                    <p class="text-gray-600 text-sm mb-4">Administrasi pendaftaran dan daftar ulang.</p>
+                    <p class="text-gray-600 text-sm mb-4">Administrasi pendaftaran dan daftar ulang siswa baru.</p>
                 </div>
                 
+                {{-- Tombol Aksi --}}
                 <div class="mt-4 pt-4 border-t border-gray-100">
-                    <a href="{{ route('siswa.pembayaran.index') }}" class="block w-full text-center py-2 px-4 {{ $calonSiswa->masih_punya_hutang ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-gray-800 text-white hover:bg-gray-900' }} rounded font-bold transition shadow-sm">
-                        {{ $calonSiswa->masih_punya_hutang ? 'Bayar Tagihan' : 'Lihat Riwayat' }}
-                    </a>
+                    @if($calonSiswa->is_dokumen_lengkap)
+                        {{-- Tombol HIDUP --}}
+                        <a href="{{ route('siswa.pembayaran.index') }}" class="block w-full text-center py-2 px-4 {{ $calonSiswa->masih_punya_hutang ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-gray-800 text-white hover:bg-gray-900' }} rounded-lg font-bold transition shadow-sm transform hover:-translate-y-0.5">
+                            {{ $calonSiswa->masih_punya_hutang ? 'Bayar Tagihan' : 'Lihat Riwayat' }}
+                        </a>
+                    @else
+                        {{-- Tombol MATI (Hanya Visual, karena sudah ada overlay) --}}
+                        <button disabled class="block w-full text-center py-2 px-4 bg-gray-200 text-gray-400 rounded-lg font-bold cursor-not-allowed">
+                            Terkunci
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>

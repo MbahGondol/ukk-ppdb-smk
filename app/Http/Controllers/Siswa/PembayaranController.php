@@ -23,7 +23,35 @@ class PembayaranController extends Controller
             return redirect()->route('siswa.dashboard')->with('error', 'Isi formulir pendaftaran dulu.');
         }
 
-        // --- LOGIKA 1: HITUNG BIAYA REAL-TIME (Anti-Manipulasi) ---
+        // --- SATPAM (GATEKEEPER) MULAI ---
+        // Integritas Data: Mencegah akses pembayaran jika dokumen belum lengkap
+        
+        // A. Tentukan dokumen dasar yang WAJIB ada
+        $wajibDocs = ['Kartu Keluarga', 'Akte Kelahiran', 'Ijazah SMP', 'Foto Formal'];
+
+        // B. Logika Kondisional
+        if ($siswa->tinggal_bersama == 'Wali') {
+            $wajibDocs[] = 'KTP Wali'; 
+        } else {
+            // Jika tinggal dengan Orang Tua
+            $wajibDocs[] = 'KTP Ayah';
+            $wajibDocs[] = 'KTP Ibu';
+        }
+
+        // C. Ambil dokumen yang SUDAH diupload siswa ini
+        $uploadedDocs = $siswa->dokumen->pluck('tipe_dokumen')->toArray();
+
+        // D. Bandingkan
+        $kurang = array_diff($wajibDocs, $uploadedDocs);
+
+        // E. Tindakan Tegas
+        if (!empty($kurang)) {
+            return redirect()->route('siswa.dokumen.index')
+                             ->with('error', 'Mohon lengkapi dokumen wajib berikut sebelum lanjut: ' . implode(', ', $kurang));
+        }
+        // --- SATPAM SELESAI ---
+
+        // --- LOGIKA PEMBAYARAN ---
         $jurusanTipeKelas = JurusanTipeKelas::where('jurusan_id', $siswa->jurusan_id)
                                             ->where('tipe_kelas_id', $siswa->tipe_kelas_id)
                                             ->firstOrFail();
@@ -32,17 +60,15 @@ class PembayaranController extends Controller
                                                 ->sum('nominal');
 
         $potongan = $siswa->promo ? $siswa->promo->potongan : 0;
-        $total_bersih = max(0, $total_kasar - $potongan); // Cegah minus
+        $total_bersih = max(0, $total_kasar - $potongan); 
 
-        // --- LOGIKA 2: SYNC DATABASE (Self-Healing) ---
-        // Jika Admin mengubah harga di tengah jalan, tagihan siswa otomatis menyesuaikan
-        // KECUALI siswa sudah pernah bayar (untuk menjaga integritas history)
-        
+        // Sync Tagihan (Self-Healing)
         $tagihanInduk = RencanaPembayaran::firstOrCreate(
             ['calon_siswa_id' => $siswa->id],
             ['total_nominal_biaya' => $total_bersih, 'total_sudah_dibayar' => 0, 'status' => 'Belum Lunas']
         );
 
+        // Update jika nominal berubah (selama belum ada yang dibayar)
         if ($tagihanInduk->total_sudah_dibayar == 0 && intval($tagihanInduk->total_nominal_biaya) != intval($total_bersih)) {
             $tagihanInduk->update(['total_nominal_biaya' => $total_bersih]);
         }
@@ -69,7 +95,6 @@ class PembayaranController extends Controller
         $siswa = Auth::user()->calonSiswa;
         $tagihanInduk = $siswa->rencanaPembayaran()->first(); 
         
-        // Validasi Overpay (Mencegah kelebihan bayar yang ekstrim)
         $sisa = $tagihanInduk->total_nominal_biaya - $tagihanInduk->total_sudah_dibayar;
         if ($request->jumlah > ($sisa + 50000)) { 
             return back()->with('error', 'Nominal pembayaran melebihi sisa tagihan.');
@@ -78,7 +103,6 @@ class PembayaranController extends Controller
         try {
             DB::transaction(function () use ($request, $siswa, $tagihanInduk) {
                 
-                // 1. Simpan Data Pembayaran
                 $pembayaran = PembayaranSiswa::create([
                     'rencana_pembayaran_id' => $tagihanInduk->id,
                     'jumlah' => $request->jumlah,
@@ -87,19 +111,15 @@ class PembayaranController extends Controller
                     'status' => 'Pending', 
                 ]);
 
-                // 2. Upload Bukti dengan Nama Unik
                 $file = $request->file('file_bukti');
                 $nama_file = 'bukti_' . $siswa->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('bukti_pembayaran', $nama_file, 'public'); // Simpan di Public agar mudah diakses Admin
+                $path = $file->storeAs('bukti_pembayaran', $nama_file, 'public');
 
                 BuktiPembayaran::create([
                     'pembayaran_id' => $pembayaran->id,
                     'file_path' => $path,
                 ]);
 
-                // 3. TRIGGER STATUS (PENTING!)
-                // Jika status masih 'Melengkapi Berkas', ubah jadi 'Terdaftar' agar muncul di Dashboard Admin
-                // TAPI: Jika sudah 'Resmi Diterima', JANGAN diubah (siswa mungkin bayar cicilan ke-2)
                 if ($siswa->status_pendaftaran == 'Melengkapi Berkas') {
                     $siswa->update(['status_pendaftaran' => 'Terdaftar']);
                 }
@@ -116,7 +136,6 @@ class PembayaranController extends Controller
     {
         $pembayaran = PembayaranSiswa::findOrFail($id);
         
-        // Security Check: Hanya boleh hapus punya sendiri & yang belum diverifikasi
         if ($pembayaran->rencanaPembayaran->calon_siswa_id != Auth::user()->calonSiswa->id) abort(403);
         if ($pembayaran->status == 'Verified') return back()->with('error', 'Data yang sudah valid tidak bisa dihapus.');
 
